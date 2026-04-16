@@ -1,0 +1,51 @@
+/* Diagnostics view */
+.campaign-diagnostics { padding: 0 1em; }
+.campaign-diag-header { display: flex; justify-content: space-between; align-items: center; }
+.campaign-diag-empty { color: var(--text-muted); font-style: italic; }
+.campaign-diag-card {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	margin: 0.5em 0;
+	padding: 0.75em 1em;
+}
+.campaign-diag-file { font-weight: 600; display: block; margin-bottom: 0.25em; }
+.campaign-diag-list { margin: 0; padding-left: 1.25em; }
+.campaign-diag-list code {
+	background: var(--background-secondary);
+	padding: 0 0.25em;
+	border-radius: 3px;
+}
+
+/* Quest board */
+.campaign-quest-board { padding: 0 1em; }
+.campaign-quest-section { margin-bottom: 1em; }
+.campaign-quest-list { list-style: none; padding-left: 0; }
+.campaign-quest-list li {
+	padding: 0.25em 0;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+.campaign-quest-state-hook { color: var(--text-accent); }
+.campaign-quest-state-active { color: var(--color-green); }
+.campaign-quest-state-completed { color: var(--text-muted); text-decoration: line-through; }
+.campaign-quest-state-failed { color: var(--color-red); }
+.campaign-quest-state-abandoned { color: var(--text-faint); }
+.campaign-quest-link { font-weight: 500; cursor: pointer; }
+.campaign-quest-giver { color: var(--text-muted); font-size: 0.9em; }
+
+/* Slash suggestions */
+.campaign-slash-suggestion {
+	display: flex;
+	justify-content: space-between;
+	gap: 1em;
+	padding: 0.25em 0.5em;
+}
+.campaign-slash-trigger {
+	font-family: var(--font-monospace);
+	color: var(--text-accent);
+	font-weight: 600;
+}
+.campaign-slash-desc { color: var(--text-muted); }
+
+/* Settings */
+.campaign-dep-status .campaign-ok { color: var(--color-green); }
+.campaign-dep-status .campaign-warn { color: var(--color-orange); }

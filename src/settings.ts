@@ -1,0 +1,86 @@
+import { PluginSettingTab, Setting, App } from "obsidian";
+import type CampaignPlugin from "./main";
+import type { EntityKind } from "./schemas";
+
+export interface CampaignSettings {
+	folders: Record<EntityKind, string>;
+	enableAutolinkOnSave: boolean;
+	strictValidation: boolean;
+}
+
+export const DEFAULT_SETTINGS: CampaignSettings = {
+	folders: {
+		pc: "Campaign/PCs",
+		npc: "Campaign/NPCs",
+		quest: "Campaign/Quests",
+		location: "Campaign/Locations",
+		session: "Campaign/Sessions",
+		faction: "Campaign/Factions",
+		item: "Campaign/Items",
+	},
+	enableAutolinkOnSave: false,
+	strictValidation: false,
+};
+
+const KINDS: EntityKind[] = ["pc", "npc", "quest", "location", "session", "faction", "item"];
+
+export class CampaignSettingTab extends PluginSettingTab {
+	constructor(
+		app: App,
+		private plugin: CampaignPlugin,
+	) {
+		super(app, plugin);
+	}
+
+	display(): void {
+		const { containerEl } = this;
+		containerEl.empty();
+
+		containerEl.createEl("h2", { text: "TTRPG Campaign settings" });
+
+		const depStatus = containerEl.createDiv({ cls: "campaign-dep-status" });
+		const tmpl = this.plugin.templater.isAvailable();
+		const dv = this.plugin.dataview.isAvailable();
+		depStatus.createEl("p", {
+			text: `Templater: ${tmpl ? "detected" : "NOT FOUND (install it)"} · Dataview: ${dv ? "detected" : "NOT FOUND (install it)"}`,
+			cls: tmpl && dv ? "campaign-ok" : "campaign-warn",
+		});
+
+		containerEl.createEl("h3", { text: "Entity folders" });
+		for (const kind of KINDS) {
+			new Setting(containerEl)
+				.setName(kind.toUpperCase())
+				.setDesc(`Folder for new ${kind} entities`)
+				.addText((t) =>
+					t
+						.setValue(this.plugin.settings.folders[kind])
+						.onChange(async (v) => {
+							this.plugin.settings.folders[kind] = v.trim();
+							await this.plugin.saveSettings();
+						}),
+				);
+		}
+
+		containerEl.createEl("h3", { text: "Validation" });
+		new Setting(containerEl)
+			.setName("Strict validation")
+			.setDesc("Show a notice when opening a file with schema errors.")
+			.addToggle((t) =>
+				t.setValue(this.plugin.settings.strictValidation).onChange(async (v) => {
+					this.plugin.settings.strictValidation = v;
+					await this.plugin.saveSettings();
+				}),
+			);
+
+		containerEl.createEl("h3", { text: "Auto-link" });
+		new Setting(containerEl)
+			.setName("Auto-link on save")
+			.setDesc("Rewrite known entity names as wikilinks each time a file is saved. Off by default — use the command instead.")
+			.addToggle((t) =>
+				t.setValue(this.plugin.settings.enableAutolinkOnSave).onChange(async (v) => {
+					this.plugin.settings.enableAutolinkOnSave = v;
+					await this.plugin.saveSettings();
+				}),
+			);
+	}
+}
