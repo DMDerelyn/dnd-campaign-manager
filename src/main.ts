@@ -30,6 +30,19 @@ import { DataviewBridge } from "./integrations/dataview-api";
 import { EntityPickerModal } from "./ui/modals/entity-picker";
 import { ulid } from "./core/ulid";
 import { validateFrontmatter, type EntityKind } from "./schemas";
+import {
+	InitiativeTrackerView,
+	INITIATIVE_VIEW_TYPE,
+} from "./features/initiative/tracker-view";
+import {
+	SessionRunnerView,
+	SESSION_RUNNER_VIEW_TYPE,
+} from "./features/session-runner/session-view";
+import { enterSessionLayout } from "./features/session-runner/layout";
+import {
+	NPCGraphView,
+	NPC_GRAPH_VIEW_TYPE,
+} from "./features/npc/relationship-graph";
 
 export default class CampaignPlugin extends Plugin {
 	settings!: CampaignSettings;
@@ -56,12 +69,26 @@ export default class CampaignPlugin extends Plugin {
 			QUEST_BOARD_VIEW_TYPE,
 			(leaf) => new QuestBoardView(leaf, this.entityIndex),
 		);
+		this.registerView(
+			INITIATIVE_VIEW_TYPE,
+			(leaf) => new InitiativeTrackerView(leaf, this),
+		);
+		this.registerView(
+			SESSION_RUNNER_VIEW_TYPE,
+			(leaf) => new SessionRunnerView(leaf, this),
+		);
+		this.registerView(
+			NPC_GRAPH_VIEW_TYPE,
+			(leaf) => new NPCGraphView(leaf, this),
+		);
 
 		this.registerEditorSuggest(new SlashSuggest(this, buildSlashCommands()));
 
 		this.addSettingTab(new CampaignSettingTab(this.app, this));
 
 		this.addRibbonIcon("scroll", "Open Quest Board", () => this.activateQuestBoard());
+		this.addRibbonIcon("swords", "Initiative Tracker", () => this.activateView(INITIATIVE_VIEW_TYPE));
+		this.addRibbonIcon("play-circle", "Start Session", () => enterSessionLayout(this));
 
 		this.registerCommands();
 		this.registerVaultListeners();
@@ -159,6 +186,21 @@ export default class CampaignPlugin extends Plugin {
 			id: "open-diagnostics",
 			name: "Open Campaign Issues",
 			callback: () => this.activateDiagnostics(),
+		});
+		this.addCommand({
+			id: "open-initiative-tracker",
+			name: "Open Initiative Tracker",
+			callback: () => this.activateView(INITIATIVE_VIEW_TYPE),
+		});
+		this.addCommand({
+			id: "start-session",
+			name: "Start Session (layout)",
+			callback: () => enterSessionLayout(this),
+		});
+		this.addCommand({
+			id: "open-npc-graph",
+			name: "Open NPC Relationship Graph",
+			callback: () => this.activateView(NPC_GRAPH_VIEW_TYPE),
 		});
 		this.addCommand({
 			id: "autolink-current-file",

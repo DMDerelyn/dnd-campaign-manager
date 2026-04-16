@@ -1,6 +1,7 @@
 import esbuild from "esbuild";
 import process from "process";
 import builtins from "builtin-modules";
+import { copyFileSync } from "fs";
 
 const prod = process.argv[2] === "production";
 
@@ -40,6 +41,7 @@ const ctx = await esbuild.context({
 
 if (prod) {
   await ctx.rebuild();
+  copyFileSync("src/ui/styles.css", "styles.css");
   process.exit(0);
 } else {
   await ctx.watch();
