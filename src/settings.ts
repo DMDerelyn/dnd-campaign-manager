@@ -5,6 +5,7 @@ import { type ThemeId, THEME_LABELS, applyTheme } from "./ui/themes";
 
 export interface CampaignSettings {
 	folders: Record<EntityKind, string>;
+	campaignRoot: string;
 	enableAutolinkOnSave: boolean;
 	strictValidation: boolean;
 	publishFolder: string;
@@ -16,17 +17,18 @@ export interface CampaignSettings {
 
 export const DEFAULT_SETTINGS: CampaignSettings = {
 	folders: {
-		pc: "Campaign/PCs",
-		npc: "Campaign/NPCs",
-		quest: "Campaign/Quests",
-		location: "Campaign/Locations",
-		session: "Campaign/Sessions",
-		faction: "Campaign/Factions",
-		item: "Campaign/Items",
+		pc: "PCs",
+		npc: "NPCs",
+		quest: "Quests",
+		location: "Locations",
+		session: "Sessions",
+		faction: "Factions",
+		item: "Items",
 	},
+	campaignRoot: "Campaigns/My Campaign",
 	enableAutolinkOnSave: false,
 	strictValidation: false,
-	publishFolder: "Campaign/_site",
+	publishFolder: "_site",
 	publishTitle: "My Campaign",
 	gitRemote: "origin",
 	gitBranch: "main",
@@ -77,11 +79,23 @@ export class CampaignSettingTab extends PluginSettingTab {
 			cls: "campaign-dep-note",
 		});
 
-		containerEl.createEl("h3", { text: "Entity folders" });
+		containerEl.createEl("h3", { text: "Campaign folder" });
+		new Setting(containerEl)
+			.setName("Campaign root")
+			.setDesc("Root folder for this campaign. All entity subfolders live inside this. Run 'Initialize Campaign Vault' to create a new one.")
+			.addText((t) =>
+				t.setValue(this.plugin.settings.campaignRoot).onChange(async (v) => {
+					this.plugin.settings.campaignRoot = v.trim();
+					await this.plugin.saveSettings();
+				}),
+			);
+
+		containerEl.createEl("h3", { text: "Entity subfolders" });
+		containerEl.createEl("p", { text: `These are relative to ${this.plugin.settings.campaignRoot}/`, cls: "setting-item-description" });
 		for (const kind of KINDS) {
 			new Setting(containerEl)
 				.setName(kind.toUpperCase())
-				.setDesc(`Folder for new ${kind} entities`)
+				.setDesc(`Subfolder for ${kind} entities`)
 				.addText((t) =>
 					t
 						.setValue(this.plugin.settings.folders[kind])

@@ -141,8 +141,13 @@ export default class CampaignPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
+	/** Resolve a relative folder path against the current campaign root. */
+	resolvePath(relative: string): string {
+		return normalizePath(`${this.settings.campaignRoot}/${relative}`);
+	}
+
 	async createEntity(kind: EntityKind, name: string): Promise<TFile> {
-		const folder = this.settings.folders[kind];
+		const folder = this.resolvePath(this.settings.folders[kind]);
 		await this.ensureFolder(folder);
 		const safe = sanitizeFilename(name) || `New ${kind}`;
 		const path = normalizePath(`${folder}/${safe}.md`);
@@ -204,6 +209,7 @@ export default class CampaignPlugin extends Plugin {
 			callback: async () => {
 				const name = await this.promptText("Campaign name (e.g., Curse of Strahd)");
 				if (!name) return;
+				this.settings.campaignRoot = `Campaigns/${sanitizeFilename(name)}`;
 				this.settings.publishTitle = name;
 				await this.saveSettings();
 				await initializeCampaignVault(this.app, this.settings, name);
@@ -239,7 +245,7 @@ export default class CampaignPlugin extends Plugin {
 			name: "Publish: Export static site",
 			callback: async () => {
 				const result = await exportStaticSite(this.app, this.entityIndex, {
-					outputPath: this.settings.publishFolder,
+					outputPath: this.resolvePath(this.settings.publishFolder),
 					title: this.settings.publishTitle,
 					includeGM: false,
 				});
@@ -253,7 +259,7 @@ export default class CampaignPlugin extends Plugin {
 			name: "Publish: Export static site (include GM content)",
 			callback: async () => {
 				const result = await exportStaticSite(this.app, this.entityIndex, {
-					outputPath: this.settings.publishFolder,
+					outputPath: this.resolvePath(this.settings.publishFolder),
 					title: this.settings.publishTitle,
 					includeGM: true,
 				});
@@ -266,12 +272,12 @@ export default class CampaignPlugin extends Plugin {
 			callback: async () => {
 				try {
 					await exportStaticSite(this.app, this.entityIndex, {
-						outputPath: this.settings.publishFolder,
+						outputPath: this.resolvePath(this.settings.publishFolder),
 						title: this.settings.publishTitle,
 						includeGM: false,
 					});
 					const out = await gitPublish(this.app, {
-						repoPath: this.settings.publishFolder,
+						repoPath: this.resolvePath(this.settings.publishFolder),
 						remoteName: this.settings.gitRemote,
 						branch: this.settings.gitBranch,
 						commitMessage: "",

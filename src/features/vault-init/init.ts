@@ -375,14 +375,18 @@ export async function initializeCampaignVault(
 	campaignName: string,
 ): Promise<void> {
 	const kinds = ["pc", "npc", "quest", "location", "session", "faction", "item"] as const;
+	const root = settings.campaignRoot;
 
 	for (const kind of kinds) {
-		const folder = settings.folders[kind];
-		await ensureFolder(app, folder);
+		await ensureFolder(app, `${root}/${settings.folders[kind]}`);
 	}
 
-	await ensureFolder(app, "Templates/Campaign");
+	await ensureFolder(app, `${root}/${settings.publishFolder}`);
 
+	await ensureFolder(app, "Templates/Campaign");
+	await ensureFolder(app, "Templates/Scripts");
+
+	let templatesCreated = 0;
 	for (const [kind, content] of Object.entries(ENTITY_TEMPLATES)) {
 		const path = `Templates/Campaign/${kind}.md`;
 		const existing = app.vault.getAbstractFileByPath(path);
@@ -393,12 +397,14 @@ export async function initializeCampaignVault(
 				.replace(/\{\{NOW\}\}/g, "TEMPLATE-DATE")
 				.replace(/\{\{DATE\}\}/g, "TEMPLATE-DATE");
 			await app.vault.create(path, populated);
+			templatesCreated++;
 		}
 	}
 
-	await ensureFolder(app, settings.publishFolder);
-
-	new Notice(`Campaign "${campaignName}" initialized! Created ${kinds.length} folders and ${kinds.length} templates.`);
+	const tmplMsg = templatesCreated > 0
+		? `${templatesCreated} new template(s) created`
+		: "templates unchanged (already exist)";
+	new Notice(`Campaign "${campaignName}" initialized!\nFolders: ${root}/\n${tmplMsg}`);
 }
 
 export function populateTemplate(template: string, name: string): string {

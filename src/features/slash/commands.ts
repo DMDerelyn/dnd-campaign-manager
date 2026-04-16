@@ -41,8 +41,8 @@ export function buildSlashCommands(): SlashCommand[] {
 						return;
 					}
 				}
-				const file = await plugin.createEntity(kind, name);
-				replace(`[[${file.basename}]]`);
+				replace(`[[${name}]]`);
+				await plugin.createEntity(kind, name);
 			},
 		}),
 	);

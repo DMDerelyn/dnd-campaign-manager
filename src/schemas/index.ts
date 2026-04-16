@@ -68,9 +68,19 @@ export function validateFrontmatter(
 		};
 	}
 	const schema = SchemaByKind[kind as EntityKind];
-	const result = schema.safeParse(fm);
+	const cleaned = stripNulls(fm as Record<string, unknown>);
+	const result = schema.safeParse(cleaned);
 	if (result.success) return { ok: true, data: result.data as Entity };
 	return { ok: false, issues: zodIssues(result.error) };
+}
+
+function stripNulls(obj: Record<string, unknown>): Record<string, unknown> {
+	const out: Record<string, unknown> = {};
+	for (const [key, value] of Object.entries(obj)) {
+		if (value === null) continue;
+		out[key] = value;
+	}
+	return out;
 }
 
 function zodIssues(err: ZodError): ValidationIssue[] {
