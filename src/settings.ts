@@ -1,6 +1,7 @@
 import { PluginSettingTab, Setting, App } from "obsidian";
 import type CampaignPlugin from "./main";
 import type { EntityKind } from "./schemas";
+import { type ThemeId, THEME_LABELS, applyTheme } from "./ui/themes";
 
 export interface CampaignSettings {
 	folders: Record<EntityKind, string>;
@@ -10,6 +11,7 @@ export interface CampaignSettings {
 	publishTitle: string;
 	gitRemote: string;
 	gitBranch: string;
+	theme: ThemeId;
 }
 
 export const DEFAULT_SETTINGS: CampaignSettings = {
@@ -28,6 +30,7 @@ export const DEFAULT_SETTINGS: CampaignSettings = {
 	publishTitle: "My Campaign",
 	gitRemote: "origin",
 	gitBranch: "main",
+	theme: "default",
 };
 
 const KINDS: EntityKind[] = ["pc", "npc", "quest", "location", "session", "faction", "item"];
@@ -45,6 +48,22 @@ export class CampaignSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		containerEl.createEl("h2", { text: "TTRPG Campaign settings" });
+
+		containerEl.createEl("h3", { text: "Theme" });
+		new Setting(containerEl)
+			.setName("D&D Theme")
+			.setDesc("Visual theme for plugin views (Initiative Tracker, Quest Board, Session Runner, etc.). Does not affect your regular notes.")
+			.addDropdown((d) => {
+				for (const [id, label] of Object.entries(THEME_LABELS)) {
+					d.addOption(id, label);
+				}
+				d.setValue(this.plugin.settings.theme);
+				d.onChange(async (v) => {
+					this.plugin.settings.theme = v as ThemeId;
+					applyTheme(this.plugin.settings.theme);
+					await this.plugin.saveSettings();
+				});
+			});
 
 		const depStatus = containerEl.createDiv({ cls: "campaign-dep-status" });
 		const tmpl = this.plugin.templater.isAvailable();

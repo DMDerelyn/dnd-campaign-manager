@@ -28,6 +28,7 @@ import { autolink } from "./features/autolink/linker";
 import { TemplaterBridge } from "./integrations/templater-api";
 import { DataviewBridge } from "./integrations/dataview-api";
 import { EntityPickerModal } from "./ui/modals/entity-picker";
+import { applyTheme } from "./ui/themes";
 import { ulid } from "./core/ulid";
 import { validateFrontmatter, type EntityKind } from "./schemas";
 import {
@@ -53,6 +54,11 @@ import {
 } from "./features/map/map-view";
 import { exportStaticSite } from "./features/publishing/exporter";
 import { gitPublish } from "./features/publishing/git-publisher";
+import {
+	initializeCampaignVault,
+	ENTITY_TEMPLATES,
+	populateTemplate,
+} from "./features/vault-init/init";
 
 export default class CampaignPlugin extends Plugin {
 	settings!: CampaignSettings;
@@ -64,6 +70,7 @@ export default class CampaignPlugin extends Plugin {
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
+		applyTheme(this.settings.theme);
 
 		this.templater = new TemplaterBridge(this.app);
 		this.dataview = new DataviewBridge(this.app);
@@ -117,7 +124,7 @@ export default class CampaignPlugin extends Plugin {
 	}
 
 	async onunload(): Promise<void> {
-		// View leaves detach themselves via onClose.
+		applyTheme("default");
 	}
 
 	async loadSettings(): Promise<void> {
@@ -134,10 +141,6 @@ export default class CampaignPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
-	/**
-	 * Create a new entity of the given kind. Uses Templater if available;
-	 * otherwise writes a minimal frontmatter stub so validation still passes.
-	 */
 	async createEntity(kind: EntityKind, name: string): Promise<TFile> {
 		const folder = this.settings.folders[kind];
 		await this.ensureFolder(folder);
@@ -147,17 +150,20 @@ export default class CampaignPlugin extends Plugin {
 		const existing = this.app.vault.getAbstractFileByPath(path);
 		if (existing instanceof TFile) return existing;
 
-		const template = await this.findTemplate(kind);
-		if (template && this.templater.isAvailable()) {
+		const vaultTemplate = await this.findTemplate(kind);
+		if (vaultTemplate && this.templater.isAvailable()) {
 			try {
-				return await this.templater.createFromTemplate(template, folder, safe);
+				return await this.templater.createFromTemplate(vaultTemplate, folder, safe);
 			} catch (err) {
-				console.warn("Templater creation failed, falling back to stub:", err);
+				console.warn("Templater creation failed, falling back to built-in template:", err);
 			}
 		}
 
-		const stub = this.stubFrontmatter(kind, safe);
-		return this.app.vault.create(path, stub);
+		const builtIn = ENTITY_TEMPLATES[kind];
+		const content = builtIn
+			? populateTemplate(builtIn, safe)
+			: this.stubFrontmatter(kind, safe);
+		return this.app.vault.create(path, content);
 	}
 
 	async promptEntityPicker() {
@@ -210,6 +216,17 @@ export default class CampaignPlugin extends Plugin {
 			id: "open-diagnostics",
 			name: "Open Campaign Issues",
 			callback: () => this.activateDiagnostics(),
+		});
+		this.addCommand({
+			id: "init-campaign-vault",
+			name: "Initialize Campaign Vault",
+			callback: async () => {
+				const name = await this.promptText("Campaign name (e.g., Curse of Strahd)");
+				if (!name) return;
+				this.settings.publishTitle = name;
+				await this.saveSettings();
+				await initializeCampaignVault(this.app, this.settings, name);
+			},
 		});
 		this.addCommand({
 			id: "open-initiative-tracker",
@@ -303,7 +320,7 @@ export default class CampaignPlugin extends Plugin {
 				id: `create-${kind}`,
 				name: `Create ${kind.toUpperCase()}`,
 				callback: async () => {
-					const name = await this.prompt(`New ${kind} name`);
+					const name = await this.promptText(`New ${kind} name`);
 					if (!name) return;
 					const file = await this.createEntity(kind, name);
 					await this.app.workspace.getLeaf(false).openFile(file);
@@ -360,7 +377,7 @@ export default class CampaignPlugin extends Plugin {
 		if (leaf) this.app.workspace.revealLeaf(leaf);
 	}
 
-	private prompt(placeholder: string): Promise<string | null> {
+	promptText(placeholder: string): Promise<string | null> {
 		return new Promise((resolve) => {
 			const modal = new PromptModal(this.app, placeholder, (v) => resolve(v));
 			modal.open();

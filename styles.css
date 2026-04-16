@@ -161,3 +161,110 @@
 .campaign-map-toolbar { display: flex; gap: 0.4em; padding: 0.5em; border-bottom: 1px solid var(--background-modifier-border); flex-shrink: 0; }
 .campaign-map-canvas { flex: 1; width: 100%; cursor: grab; }
 .campaign-map-canvas:active { cursor: grabbing; }
+
+/* ==============================
+   PHB Theme (Player's Handbook)
+   Parchment, dark red accents, serif type
+   Scoped to plugin views only
+   ============================== */
+.campaign-theme-phb .campaign-initiative,
+.campaign-theme-phb .campaign-session-runner,
+.campaign-theme-phb .campaign-quest-board,
+.campaign-theme-phb .campaign-diagnostics,
+.campaign-theme-phb .campaign-pc-sheet,
+.campaign-theme-phb .campaign-npc-graph,
+.campaign-theme-phb .campaign-map-view {
+	--phb-bg: #f4e4c1;
+	--phb-bg-dark: #e8d5a3;
+	--phb-fg: #1a1a1a;
+	--phb-accent: #58180d;
+	--phb-accent2: #9b2820;
+	--phb-border: #c9ad6a;
+	--phb-muted: #666;
+	background: var(--phb-bg);
+	color: var(--phb-fg);
+	font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+}
+.campaign-theme-phb .campaign-init-active { background: var(--phb-bg-dark); border-color: var(--phb-accent); }
+.campaign-theme-phb .campaign-init-btn,
+.campaign-theme-phb .campaign-init-btn-sm,
+.campaign-theme-phb .campaign-init-nav,
+.campaign-theme-phb .campaign-sr-quick-btn,
+.campaign-theme-phb .campaign-init-hp-btn {
+	background: var(--phb-bg-dark); border-color: var(--phb-border); color: var(--phb-fg);
+}
+.campaign-theme-phb .campaign-init-btn:hover,
+.campaign-theme-phb .campaign-sr-quick-btn:hover { background: var(--phb-border); }
+.campaign-theme-phb h2, .campaign-theme-phb h3, .campaign-theme-phb h4, .campaign-theme-phb h5 {
+	color: var(--phb-accent); font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+	border-bottom: 2px solid var(--phb-accent2); padding-bottom: 0.15em;
+}
+.campaign-theme-phb .campaign-init-row { border-color: var(--phb-border); }
+.campaign-theme-phb .campaign-init-current { color: var(--phb-accent2); }
+.campaign-theme-phb .campaign-quest-state-hook { color: var(--phb-accent2); }
+.campaign-theme-phb .campaign-quest-state-active { color: #2e7d32; }
+.campaign-theme-phb .campaign-sr-entity-link,
+.campaign-theme-phb .campaign-sr-npc-link,
+.campaign-theme-phb .campaign-init-name-link,
+.campaign-theme-phb .campaign-quest-link { color: var(--phb-accent); }
+.campaign-theme-phb .campaign-diag-card,
+.campaign-theme-phb .campaign-sr-quick { background: var(--phb-bg-dark); border-color: var(--phb-border); }
+.campaign-theme-phb .campaign-cond-chip { background: var(--phb-accent2); }
+.campaign-theme-phb .campaign-sr-disp-hostile { background: var(--phb-accent2); }
+.campaign-theme-phb .campaign-sr-disp-friendly { background: #2e7d32; }
+.campaign-theme-phb .campaign-sr-capture-input { background: var(--phb-bg-dark); border-color: var(--phb-border); color: var(--phb-fg); }
+
+/* ==============================
+   DMG Theme (Dungeon Master's Guide)
+   Dark backgrounds, gold + blood-red accents
+   Scoped to plugin views only
+   ============================== */
+.campaign-theme-dmg .campaign-initiative,
+.campaign-theme-dmg .campaign-session-runner,
+.campaign-theme-dmg .campaign-quest-board,
+.campaign-theme-dmg .campaign-diagnostics,
+.campaign-theme-dmg .campaign-pc-sheet,
+.campaign-theme-dmg .campaign-npc-graph,
+.campaign-theme-dmg .campaign-map-view {
+	--dmg-bg: #1a1a2e;
+	--dmg-bg-card: #16213e;
+	--dmg-fg: #e0d8c8;
+	--dmg-accent: #c9a84c;
+	--dmg-accent2: #8b2020;
+	--dmg-border: #3a3a5c;
+	--dmg-muted: #888;
+	background: var(--dmg-bg);
+	color: var(--dmg-fg);
+	font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+}
+.campaign-theme-dmg .campaign-init-active { background: var(--dmg-bg-card); border-color: var(--dmg-accent); }
+.campaign-theme-dmg .campaign-init-btn,
+.campaign-theme-dmg .campaign-init-btn-sm,
+.campaign-theme-dmg .campaign-init-nav,
+.campaign-theme-dmg .campaign-sr-quick-btn,
+.campaign-theme-dmg .campaign-init-hp-btn {
+	background: var(--dmg-bg-card); border-color: var(--dmg-border); color: var(--dmg-fg);
+}
+.campaign-theme-dmg .campaign-init-btn:hover,
+.campaign-theme-dmg .campaign-sr-quick-btn:hover { background: var(--dmg-border); }
+.campaign-theme-dmg h2, .campaign-theme-dmg h3, .campaign-theme-dmg h4, .campaign-theme-dmg h5 {
+	color: var(--dmg-accent); font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+	border-bottom: 1px solid var(--dmg-accent2); padding-bottom: 0.15em;
+}
+.campaign-theme-dmg .campaign-init-row { border-color: var(--dmg-border); }
+.campaign-theme-dmg .campaign-init-current { color: var(--dmg-accent); }
+.campaign-theme-dmg .campaign-quest-state-hook { color: var(--dmg-accent); }
+.campaign-theme-dmg .campaign-quest-state-active { color: #6abe6a; }
+.campaign-theme-dmg .campaign-quest-state-failed { color: var(--dmg-accent2); }
+.campaign-theme-dmg .campaign-sr-entity-link,
+.campaign-theme-dmg .campaign-sr-npc-link,
+.campaign-theme-dmg .campaign-init-name-link,
+.campaign-theme-dmg .campaign-quest-link { color: var(--dmg-accent); }
+.campaign-theme-dmg .campaign-diag-card,
+.campaign-theme-dmg .campaign-sr-quick { background: var(--dmg-bg-card); border-color: var(--dmg-border); }
+.campaign-theme-dmg .campaign-cond-chip { background: var(--dmg-accent2); }
+.campaign-theme-dmg .campaign-sr-disp-hostile { background: var(--dmg-accent2); }
+.campaign-theme-dmg .campaign-sr-disp-friendly { background: #2e6e2e; }
+.campaign-theme-dmg .campaign-sr-capture-input { background: var(--dmg-bg-card); border-color: var(--dmg-border); color: var(--dmg-fg); }
+.campaign-theme-dmg .campaign-init-hp-bar { background: var(--dmg-border); }
+.campaign-theme-dmg .campaign-sr-info-label { color: var(--dmg-muted); }

@@ -33,10 +33,13 @@ export function buildSlashCommands(): SlashCommand[] {
 			trigger,
 			description: `Create a new ${kind} entity and insert a link`,
 			async run({ plugin, tail, replace }) {
-				const name = tail.trim();
+				let name = tail.trim();
 				if (!name) {
-					replace(`[[New ${kind}]]`);
-					return;
+					name = await plugin.promptText(`New ${kind} name`) ?? "";
+					if (!name) {
+						replace("");
+						return;
+					}
 				}
 				const file = await plugin.createEntity(kind, name);
 				replace(`[[${file.basename}]]`);
