@@ -47,6 +47,10 @@ import {
 	PCSheetView,
 	PC_SHEET_VIEW_TYPE,
 } from "./features/pc/sheet-view";
+import {
+	MapView,
+	MAP_VIEW_TYPE,
+} from "./features/map/map-view";
 
 export default class CampaignPlugin extends Plugin {
 	settings!: CampaignSettings;
@@ -88,6 +92,10 @@ export default class CampaignPlugin extends Plugin {
 		this.registerView(
 			PC_SHEET_VIEW_TYPE,
 			(leaf) => new PCSheetView(leaf, this),
+		);
+		this.registerView(
+			MAP_VIEW_TYPE,
+			(leaf) => new MapView(leaf, this),
 		);
 
 		this.registerEditorSuggest(new SlashSuggest(this, buildSlashCommands()));
@@ -214,6 +222,11 @@ export default class CampaignPlugin extends Plugin {
 			id: "open-pc-sheet",
 			name: "Open PC Sheet",
 			callback: () => this.activateView(PC_SHEET_VIEW_TYPE),
+		});
+		this.addCommand({
+			id: "open-map",
+			name: "Open Campaign Map",
+			callback: () => this.activateView(MAP_VIEW_TYPE),
 		});
 		this.addCommand({
 			id: "autolink-current-file",
