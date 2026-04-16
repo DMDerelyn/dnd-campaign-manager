@@ -6,6 +6,10 @@ export interface CampaignSettings {
 	folders: Record<EntityKind, string>;
 	enableAutolinkOnSave: boolean;
 	strictValidation: boolean;
+	publishFolder: string;
+	publishTitle: string;
+	gitRemote: string;
+	gitBranch: string;
 }
 
 export const DEFAULT_SETTINGS: CampaignSettings = {
@@ -20,6 +24,10 @@ export const DEFAULT_SETTINGS: CampaignSettings = {
 	},
 	enableAutolinkOnSave: false,
 	strictValidation: false,
+	publishFolder: "Campaign/_site",
+	publishTitle: "My Campaign",
+	gitRemote: "origin",
+	gitBranch: "main",
 };
 
 const KINDS: EntityKind[] = ["pc", "npc", "quest", "location", "session", "faction", "item"];
@@ -79,6 +87,44 @@ export class CampaignSettingTab extends PluginSettingTab {
 			.addToggle((t) =>
 				t.setValue(this.plugin.settings.enableAutolinkOnSave).onChange(async (v) => {
 					this.plugin.settings.enableAutolinkOnSave = v;
+					await this.plugin.saveSettings();
+				}),
+			);
+
+		containerEl.createEl("h3", { text: "Publishing" });
+		new Setting(containerEl)
+			.setName("Export folder")
+			.setDesc("Folder within the vault where the static site is exported.")
+			.addText((t) =>
+				t.setValue(this.plugin.settings.publishFolder).onChange(async (v) => {
+					this.plugin.settings.publishFolder = v.trim();
+					await this.plugin.saveSettings();
+				}),
+			);
+		new Setting(containerEl)
+			.setName("Site title")
+			.setDesc("Title for the published campaign site.")
+			.addText((t) =>
+				t.setValue(this.plugin.settings.publishTitle).onChange(async (v) => {
+					this.plugin.settings.publishTitle = v.trim();
+					await this.plugin.saveSettings();
+				}),
+			);
+		new Setting(containerEl)
+			.setName("Git remote")
+			.setDesc("Git remote name for auto-push (e.g., origin).")
+			.addText((t) =>
+				t.setValue(this.plugin.settings.gitRemote).onChange(async (v) => {
+					this.plugin.settings.gitRemote = v.trim();
+					await this.plugin.saveSettings();
+				}),
+			);
+		new Setting(containerEl)
+			.setName("Git branch")
+			.setDesc("Branch to push to (e.g., main).")
+			.addText((t) =>
+				t.setValue(this.plugin.settings.gitBranch).onChange(async (v) => {
+					this.plugin.settings.gitBranch = v.trim();
 					await this.plugin.saveSettings();
 				}),
 			);

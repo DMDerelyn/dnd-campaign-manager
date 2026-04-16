@@ -51,6 +51,8 @@ import {
 	MapView,
 	MAP_VIEW_TYPE,
 } from "./features/map/map-view";
+import { exportStaticSite } from "./features/publishing/exporter";
+import { gitPublish } from "./features/publishing/git-publisher";
 
 export default class CampaignPlugin extends Plugin {
 	settings!: CampaignSettings;
@@ -227,6 +229,54 @@ export default class CampaignPlugin extends Plugin {
 			id: "open-map",
 			name: "Open Campaign Map",
 			callback: () => this.activateView(MAP_VIEW_TYPE),
+		});
+		this.addCommand({
+			id: "publish-export",
+			name: "Publish: Export static site",
+			callback: async () => {
+				const result = await exportStaticSite(this.app, this.entityIndex, {
+					outputPath: this.settings.publishFolder,
+					title: this.settings.publishTitle,
+					includeGM: false,
+				});
+				new Notice(
+					`Exported ${result.filesExported} page(s), skipped ${result.filesSkipped} GM-only.`,
+				);
+			},
+		});
+		this.addCommand({
+			id: "publish-export-gm",
+			name: "Publish: Export static site (include GM content)",
+			callback: async () => {
+				const result = await exportStaticSite(this.app, this.entityIndex, {
+					outputPath: this.settings.publishFolder,
+					title: this.settings.publishTitle,
+					includeGM: true,
+				});
+				new Notice(`Exported ${result.filesExported} page(s) (GM content included).`);
+			},
+		});
+		this.addCommand({
+			id: "publish-git-push",
+			name: "Publish: Export and git push",
+			callback: async () => {
+				try {
+					await exportStaticSite(this.app, this.entityIndex, {
+						outputPath: this.settings.publishFolder,
+						title: this.settings.publishTitle,
+						includeGM: false,
+					});
+					const out = await gitPublish(this.app, {
+						repoPath: this.settings.publishFolder,
+						remoteName: this.settings.gitRemote,
+						branch: this.settings.gitBranch,
+						commitMessage: "",
+					});
+					new Notice(`Published and pushed. ${out}`);
+				} catch (err) {
+					new Notice(`Publish failed: ${(err as Error).message}`);
+				}
+			},
 		});
 		this.addCommand({
 			id: "autolink-current-file",
