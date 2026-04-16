@@ -43,6 +43,10 @@ import {
 	NPCGraphView,
 	NPC_GRAPH_VIEW_TYPE,
 } from "./features/npc/relationship-graph";
+import {
+	PCSheetView,
+	PC_SHEET_VIEW_TYPE,
+} from "./features/pc/sheet-view";
 
 export default class CampaignPlugin extends Plugin {
 	settings!: CampaignSettings;
@@ -80,6 +84,10 @@ export default class CampaignPlugin extends Plugin {
 		this.registerView(
 			NPC_GRAPH_VIEW_TYPE,
 			(leaf) => new NPCGraphView(leaf, this),
+		);
+		this.registerView(
+			PC_SHEET_VIEW_TYPE,
+			(leaf) => new PCSheetView(leaf, this),
 		);
 
 		this.registerEditorSuggest(new SlashSuggest(this, buildSlashCommands()));
@@ -201,6 +209,11 @@ export default class CampaignPlugin extends Plugin {
 			id: "open-npc-graph",
 			name: "Open NPC Relationship Graph",
 			callback: () => this.activateView(NPC_GRAPH_VIEW_TYPE),
+		});
+		this.addCommand({
+			id: "open-pc-sheet",
+			name: "Open PC Sheet",
+			callback: () => this.activateView(PC_SHEET_VIEW_TYPE),
 		});
 		this.addCommand({
 			id: "autolink-current-file",
