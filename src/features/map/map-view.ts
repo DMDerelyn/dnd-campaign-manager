@@ -286,8 +286,9 @@ export class MapView extends ItemView {
 			if (file) this.app.workspace.getLeaf(false).openFile(file);
 			return;
 		}
-		const label = prompt("Pin label (leave blank to cancel):");
-		if (label === null) return;
+		const rawLabel = prompt("Pin label (leave blank to cancel):");
+		if (rawLabel === null) return;
+		const label = rawLabel.replace(/[\x00-\x1f\x7f]/g, "").slice(0, 100);
 		this.pins.push({ x: Math.round(x), y: Math.round(y), target: "", label });
 		this.draw();
 	}

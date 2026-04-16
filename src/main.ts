@@ -121,7 +121,13 @@ export default class CampaignPlugin extends Plugin {
 	}
 
 	async loadSettings(): Promise<void> {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		const saved = (await this.loadData()) ?? {};
+		if (typeof saved === "object" && saved !== null) {
+			delete (saved as Record<string, unknown>)["__proto__"];
+			delete (saved as Record<string, unknown>)["constructor"];
+			delete (saved as Record<string, unknown>)["prototype"];
+		}
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, saved);
 	}
 
 	async saveSettings(): Promise<void> {
