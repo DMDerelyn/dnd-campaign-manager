@@ -215,56 +215,63 @@
 .campaign-theme-phb .campaign-sr-capture-input { background: var(--phb-bg-dark); border-color: var(--phb-border); color: var(--phb-fg); }
 
 /* ==============================
-   DMG Theme (Dungeon Master's Guide)
-   Dark backgrounds, gold + blood-red accents
+   Black & Gold Theme
+   Pure black backgrounds, rich gold accents
    Scoped to plugin views only
    ============================== */
-.campaign-theme-dmg .campaign-initiative,
-.campaign-theme-dmg .campaign-session-runner,
-.campaign-theme-dmg .campaign-quest-board,
-.campaign-theme-dmg .campaign-diagnostics,
-.campaign-theme-dmg .campaign-pc-sheet,
-.campaign-theme-dmg .campaign-npc-graph,
-.campaign-theme-dmg .campaign-map-view {
-	--dmg-bg: #1a1a2e;
-	--dmg-bg-card: #16213e;
-	--dmg-fg: #e0d8c8;
-	--dmg-accent: #c9a84c;
-	--dmg-accent2: #8b2020;
-	--dmg-border: #3a3a5c;
-	--dmg-muted: #888;
-	background: var(--dmg-bg);
-	color: var(--dmg-fg);
+.campaign-theme-blackgold .campaign-initiative,
+.campaign-theme-blackgold .campaign-session-runner,
+.campaign-theme-blackgold .campaign-quest-board,
+.campaign-theme-blackgold .campaign-diagnostics,
+.campaign-theme-blackgold .campaign-pc-sheet,
+.campaign-theme-blackgold .campaign-npc-graph,
+.campaign-theme-blackgold .campaign-map-view {
+	--bg-bg: #0a0a0a;
+	--bg-bg-card: #1a1a1a;
+	--bg-fg: #ead7a0;
+	--bg-accent: #d4af37;
+	--bg-accent-bright: #f4cf5a;
+	--bg-accent2: #8b2020;
+	--bg-border: #3a3a3a;
+	--bg-muted: #8a8a8a;
+	background: var(--bg-bg);
+	color: var(--bg-fg);
 	font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
 }
-.campaign-theme-dmg .campaign-init-active { background: var(--dmg-bg-card); border-color: var(--dmg-accent); }
-.campaign-theme-dmg .campaign-init-btn,
-.campaign-theme-dmg .campaign-init-btn-sm,
-.campaign-theme-dmg .campaign-init-nav,
-.campaign-theme-dmg .campaign-sr-quick-btn,
-.campaign-theme-dmg .campaign-init-hp-btn {
-	background: var(--dmg-bg-card); border-color: var(--dmg-border); color: var(--dmg-fg);
+.campaign-theme-blackgold .campaign-init-active { background: var(--bg-bg-card); border-color: var(--bg-accent); }
+.campaign-theme-blackgold .campaign-init-btn,
+.campaign-theme-blackgold .campaign-init-btn-sm,
+.campaign-theme-blackgold .campaign-init-nav,
+.campaign-theme-blackgold .campaign-sr-quick-btn,
+.campaign-theme-blackgold .campaign-init-hp-btn {
+	background: var(--bg-bg-card); border-color: var(--bg-border); color: var(--bg-fg);
 }
-.campaign-theme-dmg .campaign-init-btn:hover,
-.campaign-theme-dmg .campaign-sr-quick-btn:hover { background: var(--dmg-border); }
-.campaign-theme-dmg h2, .campaign-theme-dmg h3, .campaign-theme-dmg h4, .campaign-theme-dmg h5 {
-	color: var(--dmg-accent); font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
-	border-bottom: 1px solid var(--dmg-accent2); padding-bottom: 0.15em;
+.campaign-theme-blackgold .campaign-init-btn:hover,
+.campaign-theme-blackgold .campaign-sr-quick-btn:hover { background: #2a2a2a; border-color: var(--bg-accent); }
+.campaign-theme-blackgold h2, .campaign-theme-blackgold h3, .campaign-theme-blackgold h4, .campaign-theme-blackgold h5 {
+	color: var(--bg-accent); font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+	border-bottom: 1px solid var(--bg-accent); padding-bottom: 0.15em;
+	letter-spacing: 0.03em;
 }
-.campaign-theme-dmg .campaign-init-row { border-color: var(--dmg-border); }
-.campaign-theme-dmg .campaign-init-current { color: var(--dmg-accent); }
-.campaign-theme-dmg .campaign-quest-state-hook { color: var(--dmg-accent); }
-.campaign-theme-dmg .campaign-quest-state-active { color: #6abe6a; }
-.campaign-theme-dmg .campaign-quest-state-failed { color: var(--dmg-accent2); }
-.campaign-theme-dmg .campaign-sr-entity-link,
-.campaign-theme-dmg .campaign-sr-npc-link,
-.campaign-theme-dmg .campaign-init-name-link,
-.campaign-theme-dmg .campaign-quest-link { color: var(--dmg-accent); }
-.campaign-theme-dmg .campaign-diag-card,
-.campaign-theme-dmg .campaign-sr-quick { background: var(--dmg-bg-card); border-color: var(--dmg-border); }
-.campaign-theme-dmg .campaign-cond-chip { background: var(--dmg-accent2); }
-.campaign-theme-dmg .campaign-sr-disp-hostile { background: var(--dmg-accent2); }
-.campaign-theme-dmg .campaign-sr-disp-friendly { background: #2e6e2e; }
-.campaign-theme-dmg .campaign-sr-capture-input { background: var(--dmg-bg-card); border-color: var(--dmg-border); color: var(--dmg-fg); }
-.campaign-theme-dmg .campaign-init-hp-bar { background: var(--dmg-border); }
-.campaign-theme-dmg .campaign-sr-info-label { color: var(--dmg-muted); }
+.campaign-theme-blackgold .campaign-init-row { border-color: var(--bg-border); }
+.campaign-theme-blackgold .campaign-init-current { color: var(--bg-accent-bright); }
+.campaign-theme-blackgold .campaign-quest-state-hook { color: var(--bg-accent); }
+.campaign-theme-blackgold .campaign-quest-state-active { color: #6abe6a; }
+.campaign-theme-blackgold .campaign-quest-state-failed { color: var(--bg-accent2); }
+.campaign-theme-blackgold .campaign-sr-entity-link,
+.campaign-theme-blackgold .campaign-sr-npc-link,
+.campaign-theme-blackgold .campaign-init-name-link,
+.campaign-theme-blackgold .campaign-quest-link { color: var(--bg-accent); }
+.campaign-theme-blackgold .campaign-sr-entity-link:hover,
+.campaign-theme-blackgold .campaign-sr-npc-link:hover,
+.campaign-theme-blackgold .campaign-init-name-link:hover,
+.campaign-theme-blackgold .campaign-quest-link:hover { color: var(--bg-accent-bright); }
+.campaign-theme-blackgold .campaign-diag-card,
+.campaign-theme-blackgold .campaign-sr-quick { background: var(--bg-bg-card); border-color: var(--bg-border); }
+.campaign-theme-blackgold .campaign-cond-chip { background: var(--bg-accent2); color: var(--bg-fg); }
+.campaign-theme-blackgold .campaign-sr-disp-hostile { background: var(--bg-accent2); }
+.campaign-theme-blackgold .campaign-sr-disp-friendly { background: #2e6e2e; }
+.campaign-theme-blackgold .campaign-sr-capture-input { background: var(--bg-bg-card); border-color: var(--bg-border); color: var(--bg-fg); }
+.campaign-theme-blackgold .campaign-init-hp-bar { background: var(--bg-border); }
+.campaign-theme-blackgold .campaign-sr-info-label { color: var(--bg-muted); }
+.campaign-theme-blackgold .campaign-init-init-input { background: var(--bg-bg-card); border-color: var(--bg-border); color: var(--bg-fg); }

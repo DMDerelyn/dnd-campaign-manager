@@ -69,8 +69,12 @@ export class CampaignSettingTab extends PluginSettingTab {
 		const tmpl = this.plugin.templater.isAvailable();
 		const dv = this.plugin.dataview.isAvailable();
 		depStatus.createEl("p", {
-			text: `Templater: ${tmpl ? "detected" : "NOT FOUND (install it)"} · Dataview: ${dv ? "detected" : "NOT FOUND (install it)"}`,
-			cls: tmpl && dv ? "campaign-ok" : "campaign-warn",
+			text: `Templater (optional): ${tmpl ? "detected" : "not installed"} · Dataview (optional): ${dv ? "detected" : "not installed"}`,
+			cls: dv ? "campaign-ok" : "campaign-warn",
+		});
+		depStatus.createEl("p", {
+			text: "Dataview is recommended for entity queries in notes. Templater is no longer required \u2014 the plugin uses built-in templates.",
+			cls: "campaign-dep-note",
 		});
 
 		containerEl.createEl("h3", { text: "Entity folders" });

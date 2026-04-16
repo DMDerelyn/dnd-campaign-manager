@@ -150,20 +150,13 @@ export default class CampaignPlugin extends Plugin {
 		const existing = this.app.vault.getAbstractFileByPath(path);
 		if (existing instanceof TFile) return existing;
 
-		const vaultTemplate = await this.findTemplate(kind);
-		if (vaultTemplate && this.templater.isAvailable()) {
-			try {
-				return await this.templater.createFromTemplate(vaultTemplate, folder, safe);
-			} catch (err) {
-				console.warn("Templater creation failed, falling back to built-in template:", err);
-			}
-		}
-
 		const builtIn = ENTITY_TEMPLATES[kind];
 		const content = builtIn
 			? populateTemplate(builtIn, safe)
 			: this.stubFrontmatter(kind, safe);
-		return this.app.vault.create(path, content);
+		const file = await this.app.vault.create(path, content);
+		new Notice(`Created ${kind}: ${safe}`);
+		return file;
 	}
 
 	async promptEntityPicker() {
@@ -177,18 +170,6 @@ export default class CampaignPlugin extends Plugin {
 		await this.app.vault.createFolder(path);
 	}
 
-	private async findTemplate(kind: EntityKind): Promise<TFile | null> {
-		const candidates = [
-			`Templates/Campaign/${kind}.md`,
-			`Templates/${kind}.md`,
-			`templates/${kind}.md`,
-		];
-		for (const c of candidates) {
-			const f = this.app.vault.getAbstractFileByPath(c);
-			if (f instanceof TFile) return f;
-		}
-		return null;
-	}
 
 	private stubFrontmatter(kind: EntityKind, name: string): string {
 		const now = new Date().toISOString();
