@@ -80,9 +80,15 @@ export class CampaignSettingTab extends PluginSettingTab {
 		});
 
 		containerEl.createEl("h3", { text: "Campaign folder" });
+		const active = this.plugin.getActiveCampaignRoot();
+		const activeNote = containerEl.createDiv({ cls: "campaign-dep-note" });
+		activeNote.createEl("p", {
+			text: `Active campaign (auto-detected from current file or default): ${active}`,
+			cls: active !== this.plugin.settings.campaignRoot ? "campaign-warn" : "campaign-ok",
+		});
 		new Setting(containerEl)
-			.setName("Campaign root")
-			.setDesc("Root folder for this campaign. All entity subfolders live inside this. Run 'Initialize Campaign Vault' to create a new one.")
+			.setName("Default campaign root")
+			.setDesc("Used when no campaign file is currently open. New entities go here unless you're editing a file inside another campaign. Use 'Switch Active Campaign' command to change.")
 			.addText((t) =>
 				t.setValue(this.plugin.settings.campaignRoot).onChange(async (v) => {
 					this.plugin.settings.campaignRoot = v.trim();

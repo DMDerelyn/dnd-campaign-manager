@@ -1,5 +1,6 @@
 import {
 	App,
+	FuzzySuggestModal,
 	MarkdownView,
 	Modal,
 	Notice,
@@ -141,9 +142,36 @@ export default class CampaignPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
-	/** Resolve a relative folder path against the current campaign root. */
+	/**
+	 * Determine the active campaign root. Prefers the campaign that contains
+	 * the active file (auto-detected from path: `Campaigns/<name>/...`), and
+	 * falls back to the configured default in settings.
+	 */
+	getActiveCampaignRoot(): string {
+		const file = this.app.workspace.getActiveFile();
+		if (file) {
+			const match = file.path.match(/^(Campaigns\/[^/]+)\//);
+			if (match) return match[1];
+		}
+		return this.settings.campaignRoot;
+	}
+
+	/** Resolve a relative folder path against the active campaign root. */
 	resolvePath(relative: string): string {
-		return normalizePath(`${this.settings.campaignRoot}/${relative}`);
+		return normalizePath(`${this.getActiveCampaignRoot()}/${relative}`);
+	}
+
+	/** List all campaigns by scanning Campaigns/ for subfolders. */
+	listCampaigns(): string[] {
+		const root = this.app.vault.getAbstractFileByPath("Campaigns");
+		if (!root || !("children" in root)) return [];
+		const folders: string[] = [];
+		for (const child of (root as { children: unknown[] }).children) {
+			if (child && typeof child === "object" && "path" in child && "children" in child) {
+				folders.push((child as { path: string }).path);
+			}
+		}
+		return folders.sort();
 	}
 
 	async createEntity(kind: EntityKind, name: string): Promise<TFile> {
@@ -213,6 +241,22 @@ export default class CampaignPlugin extends Plugin {
 				this.settings.publishTitle = name;
 				await this.saveSettings();
 				await initializeCampaignVault(this.app, this.settings, name);
+			},
+		});
+		this.addCommand({
+			id: "switch-active-campaign",
+			name: "Switch Active Campaign (default)",
+			callback: async () => {
+				const campaigns = this.listCampaigns();
+				if (campaigns.length === 0) {
+					new Notice("No campaigns found. Run 'Initialize Campaign Vault' first.");
+					return;
+				}
+				const picked = await this.pickFromList("Pick default campaign", campaigns);
+				if (!picked) return;
+				this.settings.campaignRoot = picked;
+				await this.saveSettings();
+				new Notice(`Default campaign set to: ${picked}`);
 			},
 		});
 		this.addCommand({
@@ -364,6 +408,13 @@ export default class CampaignPlugin extends Plugin {
 		if (leaf) this.app.workspace.revealLeaf(leaf);
 	}
 
+	pickFromList(placeholder: string, items: string[]): Promise<string | null> {
+		return new Promise((resolve) => {
+			const modal = new ListPickerModal(this.app, placeholder, items, resolve);
+			modal.open();
+		});
+	}
+
 	promptText(placeholder: string): Promise<string | null> {
 		return new Promise((resolve) => {
 			const modal = new PromptModal(this.app, placeholder, (v) => resolve(v));
@@ -411,6 +462,22 @@ function kindStub(kind: EntityKind): string[] {
 		case "item":
 			return ["rarity: common"];
 	}
+}
+
+class ListPickerModal extends FuzzySuggestModal<string> {
+	constructor(
+		app: App,
+		placeholder: string,
+		private items: string[],
+		private resolve: (v: string | null) => void,
+	) {
+		super(app);
+		this.setPlaceholder(placeholder);
+	}
+	getItems(): string[] { return this.items; }
+	getItemText(item: string): string { return item; }
+	onChooseItem(item: string): void { this.resolve(item); }
+	onClose(): void { this.resolve(null); }
 }
 
 class PromptModal extends Modal {
