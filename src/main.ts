@@ -541,14 +541,36 @@ class PromptModal extends Modal {
 		const input = this.contentEl.createEl("input", { type: "text" });
 		input.style.width = "100%";
 		input.focus();
-		input.addEventListener("keydown", (e) => {
+
+		// Stop Enter/Escape from bubbling into the editor below. Without
+		// preventDefault + stopPropagation, pressing Enter in this input
+		// also inserts a newline at the active editor's cursor once the
+		// modal closes, corrupting the frontmatter of the file the user
+		// was editing when they invoked the command.
+		const handle = (e: KeyboardEvent) => {
+			if (e.key === "Enter" || e.key === "Escape") {
+				e.preventDefault();
+				e.stopPropagation();
+			}
 			if (e.key === "Enter") {
 				this.value = input.value.trim();
 				this.close();
 			} else if (e.key === "Escape") {
 				this.close();
 			}
-		});
+		};
+		input.addEventListener("keydown", handle);
+		// Also swallow keypress and keyup so the sequence doesn't leak
+		// to the editor behind the modal after it closes.
+		const swallow = (e: KeyboardEvent) => {
+			if (e.key === "Enter" || e.key === "Escape") {
+				e.preventDefault();
+				e.stopPropagation();
+			}
+		};
+		input.addEventListener("keypress", swallow);
+		input.addEventListener("keyup", swallow);
+
 		new Setting(this.contentEl)
 			.addButton((b) =>
 				b.setButtonText("Cancel").onClick(() => this.close()),
