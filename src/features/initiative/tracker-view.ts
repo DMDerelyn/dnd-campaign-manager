@@ -23,6 +23,7 @@ export const INITIATIVE_VIEW_TYPE = "campaign-initiative";
 
 export class InitiativeTrackerView extends ItemView {
 	private state: CombatState = createCombatState();
+	private detachLeafChange: (() => void) | null = null;
 
 	constructor(
 		leaf: WorkspaceLeaf,
@@ -43,6 +44,17 @@ export class InitiativeTrackerView extends ItemView {
 
 	async onOpen(): Promise<void> {
 		this.render();
+		// Re-render when the user switches files so the "Campaign: <root>"
+		// label and the Add PCs/NPCs buttons reflect the currently-active
+		// campaign without having to close and reopen the tracker.
+		const ref = this.plugin.app.workspace.on("active-leaf-change", () => this.render());
+		this.plugin.registerEvent(ref);
+		this.detachLeafChange = () => this.plugin.app.workspace.offref(ref);
+	}
+
+	async onClose(): Promise<void> {
+		this.detachLeafChange?.();
+		this.detachLeafChange = null;
 	}
 
 	setCombatState(state: CombatState): void {
@@ -152,6 +164,18 @@ export class InitiativeTrackerView extends ItemView {
 		initInput.addEventListener("change", () => {
 			this.update(updateInitiative(this.state, c.id, parseInt(initInput.value, 10) || 0));
 		});
+
+		// Per-combatant initiative roll (NPCs/custom only; players roll their own).
+		if (!c.isPC) {
+			const rollBtn = left.createEl("button", {
+				cls: "campaign-init-d20-btn",
+				attr: { "aria-label": `Roll initiative for ${c.name}`, title: `Roll initiative for ${c.name}` },
+			});
+			appendD20Icon(rollBtn);
+			rollBtn.addEventListener("click", () => {
+				this.update(updateInitiative(this.state, c.id, rollInitiativeValue()));
+			});
+		}
 
 		const nameEl = left.createEl("span", { text: c.name, cls: "campaign-init-name" });
 		if (c.entityPath) {
@@ -385,4 +409,39 @@ class ConditionPickerModal extends Modal {
 			});
 		}
 	}
+}
+
+/**
+ * Append a small wire-frame d20-ish icon to a button. 5-point pentagon
+ * with internal triangles to approximate the silhouette of a d20.
+ */
+function appendD20Icon(parent: HTMLElement): void {
+	const NS = "http://www.w3.org/2000/svg";
+	const svg = document.createElementNS(NS, "svg");
+	svg.setAttribute("viewBox", "0 0 24 24");
+	svg.setAttribute("width", "14");
+	svg.setAttribute("height", "14");
+	svg.setAttribute("fill", "none");
+	svg.setAttribute("stroke", "currentColor");
+	svg.setAttribute("stroke-width", "1.5");
+	svg.setAttribute("stroke-linejoin", "round");
+
+	const outer = document.createElementNS(NS, "polygon");
+	outer.setAttribute("points", "12,2 22,9 18,22 6,22 2,9");
+	svg.appendChild(outer);
+
+	// Internal triangles to suggest the d20's facets.
+	const inner = document.createElementNS(NS, "polygon");
+	inner.setAttribute("points", "12,2 12,15 22,9");
+	svg.appendChild(inner);
+
+	const inner2 = document.createElementNS(NS, "polygon");
+	inner2.setAttribute("points", "12,2 12,15 2,9");
+	svg.appendChild(inner2);
+
+	const inner3 = document.createElementNS(NS, "polygon");
+	inner3.setAttribute("points", "12,15 6,22 18,22");
+	svg.appendChild(inner3);
+
+	parent.appendChild(svg);
 }

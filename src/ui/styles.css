@@ -167,6 +167,16 @@
 	padding: 0.2em 0.4em; background: var(--background-secondary); border-radius: 3px;
 }
 
+/* Per-combatant d20 roll button */
+.campaign-init-d20-btn {
+	display: inline-flex; align-items: center; justify-content: center;
+	padding: 0.15em 0.3em; border-radius: 3px;
+	background: var(--interactive-normal); border: 1px solid var(--background-modifier-border);
+	cursor: pointer; color: var(--text-normal);
+}
+.campaign-init-d20-btn:hover { background: var(--interactive-hover); color: var(--text-accent); }
+.campaign-init-d20-btn svg { display: block; }
+
 /* Map View */
 .campaign-map-view { padding: 0; display: flex; flex-direction: column; height: 100%; }
 .campaign-map-toolbar { display: flex; gap: 0.4em; padding: 0.5em; border-bottom: 1px solid var(--background-modifier-border); flex-shrink: 0; }
