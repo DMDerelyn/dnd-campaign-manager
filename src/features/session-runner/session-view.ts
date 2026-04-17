@@ -137,9 +137,9 @@ export class SessionRunnerView extends ItemView {
 			{
 				label: "Insert Event",
 				action: async () => {
-					const text = await this.plugin.promptText("Event text");
+					const text = await this.plugin.promptText("Please describe the event that occurred:");
 					if (!text) return;
-					await this.appendToSessionLog(`- ${text}`);
+					await this.appendToSessionLog(`- Event: ${text}`);
 					new Notice("Event logged");
 				},
 			},
@@ -148,7 +148,7 @@ export class SessionRunnerView extends ItemView {
 				action: async () => {
 					const text = await this.plugin.promptText("Loot description");
 					if (!text) return;
-					await this.appendToSessionLog(`- [ ] Loot: ${text}`);
+					await this.appendToSessionLog(`- Loot: ${text}`);
 					new Notice("Loot logged");
 				},
 			},
