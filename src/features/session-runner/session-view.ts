@@ -1,7 +1,7 @@
-import { ItemView, WorkspaceLeaf, TFile, MarkdownView, Notice } from "obsidian";
+import { ItemView, WorkspaceLeaf, TFile, Notice } from "obsidian";
 import type CampaignPlugin from "../../main";
-import type { IndexedEntity } from "../../core/entity-index";
 import { EntityPickerModal } from "../../ui/modals/entity-picker";
+import { rollExpression } from "../slash/commands";
 
 export const SESSION_RUNNER_VIEW_TYPE = "campaign-session-runner";
 
@@ -97,40 +97,79 @@ export class SessionRunnerView extends ItemView {
 	private renderQuickInsert(el: HTMLElement): void {
 		const panel = el.createDiv({ cls: "campaign-sr-quick" });
 		panel.createEl("h4", { text: "Quick Insert" });
+
+		if (!this.sessionFile) {
+			panel.createEl("p", {
+				text: "Pick a session above to enable Quick Insert.",
+				cls: "campaign-init-empty",
+			});
+			return;
+		}
+
 		const grid = panel.createDiv({ cls: "campaign-sr-quick-grid" });
 
-		const actions: { label: string; action: () => void }[] = [
+		const actions: { label: string; action: () => void | Promise<void> }[] = [
 			{
 				label: "Insert NPC Link",
 				action: async () => {
 					const entity = await this.plugin.promptEntityPicker();
-					if (entity) this.insertIntoActiveEditor(`[[${entity.name}]]`);
+					if (!entity) return;
+					await this.appendToSessionLog(`- Mentioned [[${entity.name}]]`);
+					new Notice(`Logged: ${entity.name}`);
 				},
 			},
 			{
 				label: "Insert Roll",
-				action: () => this.insertIntoActiveEditor("`dice: 1d20`"),
+				action: async () => {
+					const expr = await this.plugin.promptText("Dice expression (e.g., 1d20, 2d6+3)");
+					if (!expr) return;
+					const result = rollExpression(expr);
+					if (result.rolls.length === 0) {
+						new Notice(`Invalid dice expression: ${expr}`);
+						return;
+					}
+					await this.appendToSessionLog(
+						`- Rolled \`${expr} = ${result.total}\` (${result.rolls.join(", ")})`,
+					);
+					new Notice(`Rolled ${expr} = ${result.total}`);
+				},
 			},
 			{
 				label: "Insert Event",
-				action: () => {
-					const ts = new Date().toISOString().slice(0, 16).replace("T", " ");
-					this.insertIntoActiveEditor(`\n- **${ts}** — `);
+				action: async () => {
+					const text = await this.plugin.promptText("Event text");
+					if (!text) return;
+					await this.appendToSessionLog(`- ${text}`);
+					new Notice("Event logged");
 				},
 			},
 			{
 				label: "Insert Loot",
-				action: () => this.insertIntoActiveEditor("\n- [ ] Loot: "),
+				action: async () => {
+					const text = await this.plugin.promptText("Loot description");
+					if (!text) return;
+					await this.appendToSessionLog(`- [ ] Loot: ${text}`);
+					new Notice("Loot logged");
+				},
 			},
 			{
 				label: "Mark Secret Revealed",
-				action: () => this.insertIntoActiveEditor("\n> [!secret] Revealed: "),
+				action: async () => {
+					const text = await this.plugin.promptText("Secret revealed");
+					if (!text) return;
+					await this.appendToSessionLog(`> [!secret] Revealed: ${text}`);
+					new Notice("Secret logged");
+				},
 			},
 		];
 
 		for (const a of actions) {
 			const btn = grid.createEl("button", { text: a.label, cls: "campaign-sr-quick-btn" });
-			btn.addEventListener("click", a.action);
+			btn.addEventListener("click", () => {
+				Promise.resolve(a.action()).catch((e) =>
+					new Notice(`Quick Insert failed: ${(e as Error).message}`),
+				);
+			});
 		}
 	}
 
@@ -195,9 +234,14 @@ export class SessionRunnerView extends ItemView {
 				row.createEl("span", { text: disp, cls: `campaign-sr-disp campaign-sr-disp-${disp}` });
 			}
 
-			const insertBtn = row.createEl("button", { text: "Insert", cls: "campaign-init-btn-sm" });
-			insertBtn.addEventListener("click", () => {
-				this.insertIntoActiveEditor(`[[${npc.name}]]`);
+			const insertBtn = row.createEl("button", { text: "Log", cls: "campaign-init-btn-sm" });
+			insertBtn.addEventListener("click", async () => {
+				if (!this.sessionFile) {
+					new Notice("Pick a session first.");
+					return;
+				}
+				await this.appendToSessionLog(`- Mentioned [[${npc.name}]]`);
+				new Notice(`Logged: ${npc.name}`);
 			});
 		}
 	}
@@ -222,28 +266,26 @@ export class SessionRunnerView extends ItemView {
 	}
 
 	private async appendToSessionFile(text: string): Promise<void> {
+		const ts = new Date().toISOString().slice(0, 16).replace("T", " ");
+		await this.appendToSessionLog(`- **${ts}** \u2014 ${text}`);
+	}
+
+	/**
+	 * Append a raw line to the Session log section. Creates the section if
+	 * it doesn't exist. Safe to call without a timestamp wrapper.
+	 */
+	private async appendToSessionLog(line: string): Promise<void> {
 		if (!this.sessionFile) return;
 		const content = await this.app.vault.read(this.sessionFile);
 		const logHeader = "## Session log";
 		const idx = content.indexOf(logHeader);
 		if (idx !== -1) {
 			const insertAt = idx + logHeader.length;
-			const ts = new Date().toISOString().slice(0, 16).replace("T", " ");
-			const line = `\n- **${ts}** — ${text}`;
-			const updated = content.slice(0, insertAt) + line + content.slice(insertAt);
+			const updated = content.slice(0, insertAt) + `\n${line}` + content.slice(insertAt);
 			await this.app.vault.modify(this.sessionFile, updated);
 		} else {
-			const ts = new Date().toISOString().slice(0, 16).replace("T", " ");
-			await this.app.vault.append(this.sessionFile, `\n- **${ts}** — ${text}`);
-		}
-	}
-
-	private insertIntoActiveEditor(text: string): void {
-		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-		if (view) {
-			const editor = view.editor;
-			editor.replaceSelection(text);
-			editor.focus();
+			const suffix = content.endsWith("\n") ? "" : "\n";
+			await this.app.vault.append(this.sessionFile, `${suffix}\n${logHeader}\n${line}\n`);
 		}
 	}
 
