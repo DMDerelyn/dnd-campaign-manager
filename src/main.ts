@@ -194,16 +194,7 @@ export default class CampaignPlugin extends Plugin {
 			? populateTemplate(builtIn, safe)
 			: this.stubFrontmatter(kind, safe);
 		const file = await this.app.vault.create(path, content);
-
-		// Defensive normalization: other plugins (Templater Folder Templates,
-		// Core Templates) can prepend content to newly-created files. Give
-		// them a moment to finish, then ensure our frontmatter is at line 1.
-		setTimeout(() => {
-			this.normalizeEntityFrontmatter(file).catch((err) =>
-				console.warn("normalizeEntityFrontmatter:", err),
-			);
-		}, 300);
-
+		this.scheduleFrontmatterNormalization(file);
 		new Notice(`Created ${kind}: ${safe}`);
 		return file;
 	}
@@ -220,16 +211,29 @@ export default class CampaignPlugin extends Plugin {
 	}
 
 	/**
-	 * Strip any content that another plugin may have prepended before the
-	 * frontmatter delimiter. Leaves the file alone if it already starts
-	 * with "---" or if no delimiter is found.
+	 * Another plugin (Templater's "Folder Templates", Core Templates, etc.)
+	 * may prepend content to newly-created files. We can't know when they
+	 * are "done", so we re-check at several intervals and strip any content
+	 * before the first line-start --- delimiter whenever we see it.
 	 */
-	private async normalizeEntityFrontmatter(file: TFile): Promise<void> {
+	scheduleFrontmatterNormalization(file: TFile): void {
+		const intervals = [0, 250, 700, 1500, 3000];
+		for (const delay of intervals) {
+			setTimeout(() => {
+				this.normalizeEntityFrontmatter(file).catch((err) =>
+					console.warn("normalizeEntityFrontmatter:", err),
+				);
+			}, delay);
+		}
+	}
+
+	async normalizeEntityFrontmatter(file: TFile): Promise<void> {
 		const actual = await this.app.vault.read(file);
 		if (actual.startsWith("---")) return;
 		const match = actual.match(/^---\s*$/m);
 		if (!match || match.index === undefined || match.index === 0) return;
 		const normalized = actual.slice(match.index);
+		if (normalized === actual) return;
 		await this.app.vault.modify(file, normalized);
 	}
 
@@ -360,6 +364,19 @@ export default class CampaignPlugin extends Plugin {
 				} catch (err) {
 					new Notice(`Publish failed: ${(err as Error).message}`);
 				}
+			},
+		});
+		this.addCommand({
+			id: "fix-frontmatter-current-file",
+			name: "Fix frontmatter position (current file)",
+			checkCallback: (checking) => {
+				const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+				if (!view?.file) return false;
+				if (checking) return true;
+				this.normalizeEntityFrontmatter(view.file)
+					.then(() => new Notice("Frontmatter normalized."))
+					.catch((err) => new Notice(`Fix failed: ${(err as Error).message}`));
+				return true;
 			},
 		});
 		this.addCommand({

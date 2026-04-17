@@ -208,6 +208,7 @@ class DDBImportModal extends Modal {
 		const file = await this.plugin.createEntity("pc", name);
 		const yaml = pcToYaml(pc);
 		await this.app.vault.modify(file, yaml + `\n# ${name}\n\n## Backstory\n\n## Notes\n`);
+		this.plugin.scheduleFrontmatterNormalization(file);
 	}
 }
 
