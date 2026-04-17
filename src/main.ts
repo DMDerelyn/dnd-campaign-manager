@@ -194,6 +194,16 @@ export default class CampaignPlugin extends Plugin {
 			? populateTemplate(builtIn, safe)
 			: this.stubFrontmatter(kind, safe);
 		const file = await this.app.vault.create(path, content);
+
+		// Defensive normalization: other plugins (Templater Folder Templates,
+		// Core Templates) can prepend content to newly-created files. Give
+		// them a moment to finish, then ensure our frontmatter is at line 1.
+		setTimeout(() => {
+			this.normalizeEntityFrontmatter(file).catch((err) =>
+				console.warn("normalizeEntityFrontmatter:", err),
+			);
+		}, 300);
+
 		new Notice(`Created ${kind}: ${safe}`);
 		return file;
 	}
@@ -207,6 +217,20 @@ export default class CampaignPlugin extends Plugin {
 		const existing = this.app.vault.getAbstractFileByPath(path);
 		if (existing) return;
 		await this.app.vault.createFolder(path);
+	}
+
+	/**
+	 * Strip any content that another plugin may have prepended before the
+	 * frontmatter delimiter. Leaves the file alone if it already starts
+	 * with "---" or if no delimiter is found.
+	 */
+	private async normalizeEntityFrontmatter(file: TFile): Promise<void> {
+		const actual = await this.app.vault.read(file);
+		if (actual.startsWith("---")) return;
+		const match = actual.match(/^---\s*$/m);
+		if (!match || match.index === undefined || match.index === 0) return;
+		const normalized = actual.slice(match.index);
+		await this.app.vault.modify(file, normalized);
 	}
 
 

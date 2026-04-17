@@ -16,12 +16,18 @@ interface GraphEdge {
 	label: string;
 }
 
+interface SimNode extends GraphNode {
+	vx: number;
+	vy: number;
+}
+
 export class NPCGraphView extends ItemView {
 	private detach: (() => void) | null = null;
+	private resizeObs: ResizeObserver | null = null;
 	private canvas: HTMLCanvasElement | null = null;
-	private nodes: GraphNode[] = [];
+	private nodes: SimNode[] = [];
 	private edges: GraphEdge[] = [];
-	private dragNode: GraphNode | null = null;
+	private dragNode: SimNode | null = null;
 	private offsetX = 0;
 	private offsetY = 0;
 
@@ -30,6 +36,9 @@ export class NPCGraphView extends ItemView {
 	private panY = 0;
 	private isPanning = false;
 	private panStart = { x: 0, y: 0 };
+
+	private simTicks = 0;
+	private simRaf: number | null = null;
 
 	constructor(
 		leaf: WorkspaceLeaf,
@@ -53,13 +62,19 @@ export class NPCGraphView extends ItemView {
 		this.renderCanvas();
 		this.detach = this.plugin.entityIndex.onChange(() => {
 			this.buildGraph();
-			this.draw();
+			this.renderCanvas();
 		});
 	}
 
 	async onClose(): Promise<void> {
 		this.detach?.();
 		this.detach = null;
+		this.resizeObs?.disconnect();
+		this.resizeObs = null;
+		if (this.simRaf !== null) {
+			cancelAnimationFrame(this.simRaf);
+			this.simRaf = null;
+		}
 	}
 
 	private buildGraph(): void {
@@ -71,19 +86,26 @@ export class NPCGraphView extends ItemView {
 		this.nodes = [];
 		this.edges = [];
 
+		// Preserve positions of nodes that already exist (e.g. on data update).
+		const previous = new Map<string, SimNode>();
+		for (const n of this.nodes) previous.set(n.entity.path, n);
+
 		const cx = 400;
 		const cy = 300;
 		const radius = Math.min(250, all.length * 30);
 		const step = all.length > 0 ? (2 * Math.PI) / all.length : 0;
 
-		for (let i = 0; i < all.length; i++) {
-			const e = all[i];
-			this.nodes.push({
+		this.nodes = all.map((e, i) => {
+			const existing = previous.get(e.path);
+			if (existing) return { ...existing, entity: e };
+			return {
 				entity: e,
 				x: cx + radius * Math.cos(i * step),
 				y: cy + radius * Math.sin(i * step),
-			});
-		}
+				vx: 0,
+				vy: 0,
+			};
+		});
 
 		const nameToPath = new Map<string, string>();
 		for (const e of all) {
@@ -142,6 +164,11 @@ export class NPCGraphView extends ItemView {
 			this.panY = 0;
 			this.draw();
 		});
+		const relayoutBtn = toolbar.createEl("button", { text: "Re-layout", cls: "campaign-init-btn" });
+		relayoutBtn.addEventListener("click", () => {
+			this.simTicks = 200;
+			this.runSimulation();
+		});
 
 		if (this.nodes.length === 0) {
 			const help = el.createDiv({ cls: "campaign-graph-empty" });
@@ -168,9 +195,8 @@ export class NPCGraphView extends ItemView {
 			return;
 		}
 
-		this.canvas = el.createEl("canvas", { cls: "campaign-graph-canvas" });
-		this.canvas.width = 800;
-		this.canvas.height = 600;
+		const canvasHost = el.createDiv({ cls: "campaign-graph-host" });
+		this.canvas = canvasHost.createEl("canvas", { cls: "campaign-graph-canvas" });
 
 		this.canvas.addEventListener("wheel", (e) => this.onWheel(e), { passive: false });
 		this.canvas.addEventListener("mousedown", (e) => this.onMouseDown(e));
@@ -179,7 +205,115 @@ export class NPCGraphView extends ItemView {
 		this.canvas.addEventListener("mouseleave", () => this.onMouseUp());
 		this.canvas.addEventListener("dblclick", (e) => this.onDblClick(e));
 
+		this.resizeObs?.disconnect();
+		this.resizeObs = new ResizeObserver(() => this.resizeCanvas());
+		this.resizeObs.observe(canvasHost);
+		this.resizeCanvas();
+
+		this.simTicks = 200;
+		this.runSimulation();
+	}
+
+	private resizeCanvas(): void {
+		if (!this.canvas) return;
+		const host = this.canvas.parentElement;
+		if (!host) return;
+		const rect = host.getBoundingClientRect();
+		const w = Math.max(200, Math.floor(rect.width));
+		const h = Math.max(200, Math.floor(rect.height));
+		if (this.canvas.width !== w) this.canvas.width = w;
+		if (this.canvas.height !== h) this.canvas.height = h;
 		this.draw();
+	}
+
+	/**
+	 * Simple force-directed simulation: nodes repel each other, edges pull
+	 * connected nodes together. Runs for simTicks frames, damped each step,
+	 * so the graph settles into a readable layout.
+	 */
+	private runSimulation(): void {
+		if (!this.canvas) return;
+		if (this.simRaf !== null) cancelAnimationFrame(this.simRaf);
+
+		const step = () => {
+			this.simulateStep();
+			this.draw();
+			this.simTicks--;
+			if (this.simTicks > 0) {
+				this.simRaf = requestAnimationFrame(step);
+			} else {
+				this.simRaf = null;
+			}
+		};
+		this.simRaf = requestAnimationFrame(step);
+	}
+
+	private simulateStep(): void {
+		if (this.nodes.length < 2) return;
+		const repulsion = 4000;
+		const springLength = 160;
+		const springK = 0.015;
+		const damping = 0.82;
+		const center = this.canvas
+			? { x: this.canvas.width / (2 * this.zoom), y: this.canvas.height / (2 * this.zoom) }
+			: { x: 400, y: 300 };
+
+		for (const n of this.nodes) {
+			n.vx = 0;
+			n.vy = 0;
+		}
+
+		// Repulsion between every pair
+		for (let i = 0; i < this.nodes.length; i++) {
+			const a = this.nodes[i];
+			for (let j = i + 1; j < this.nodes.length; j++) {
+				const b = this.nodes[j];
+				const dx = a.x - b.x;
+				const dy = a.y - b.y;
+				const d2 = Math.max(100, dx * dx + dy * dy);
+				const f = repulsion / d2;
+				const d = Math.sqrt(d2);
+				const fx = (dx / d) * f;
+				const fy = (dy / d) * f;
+				a.vx += fx;
+				a.vy += fy;
+				b.vx -= fx;
+				b.vy -= fy;
+			}
+		}
+
+		// Spring attraction along edges
+		const byPath = new Map<string, SimNode>();
+		for (const n of this.nodes) byPath.set(n.entity.path, n);
+		for (const edge of this.edges) {
+			const a = byPath.get(edge.from);
+			const b = byPath.get(edge.to);
+			if (!a || !b) continue;
+			const dx = b.x - a.x;
+			const dy = b.y - a.y;
+			const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+			const f = (dist - springLength) * springK;
+			const fx = (dx / dist) * f;
+			const fy = (dy / dist) * f;
+			a.vx += fx;
+			a.vy += fy;
+			b.vx -= fx;
+			b.vy -= fy;
+		}
+
+		// Weak gravity toward center so disconnected clusters don't drift away
+		for (const n of this.nodes) {
+			n.vx += (center.x - n.x) * 0.001;
+			n.vy += (center.y - n.y) * 0.001;
+		}
+
+		for (const n of this.nodes) {
+			if (n === this.dragNode) continue;
+			n.vx *= damping;
+			n.vy *= damping;
+			n.x += n.vx;
+			n.y += n.vy;
+		}
 	}
 
 	private draw(): void {
@@ -248,7 +382,7 @@ export class NPCGraphView extends ItemView {
 		ctx.restore();
 	}
 
-	private hitTest(wx: number, wy: number): GraphNode | null {
+	private hitTest(wx: number, wy: number): SimNode | null {
 		for (const n of this.nodes) {
 			const dx = wx - n.x;
 			const dy = wy - n.y;
@@ -317,6 +451,10 @@ export class NPCGraphView extends ItemView {
 	}
 
 	private onMouseUp(): void {
+		if (this.dragNode) {
+			this.simTicks = 60;
+			this.runSimulation();
+		}
 		this.dragNode = null;
 		this.isPanning = false;
 	}
