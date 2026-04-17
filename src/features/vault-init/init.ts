@@ -16,7 +16,10 @@ role:
 race:
 factions: []
 location:
-relationships: []
+friends: []
+enemies: []
+rivals: []
+family: []
 secrets: []
 created: {{NOW}}
 updated: {{NOW}}
@@ -47,8 +50,8 @@ updated: {{NOW}}
 ## Plot Hooks
 -
 
-## Relationships
--
+## Relationship Details
+> *Free-form notes about this NPC's relationships — history, dynamics, tension. The NPC Relationship Graph pulls from the flat frontmatter fields (friends, enemies, rivals, family, factions) above; this section is for the richer story behind them.*
 
 ## Notes
 `,

@@ -11,12 +11,6 @@ export const Disposition = z.enum([
 
 export const NPCStatus = z.enum(["alive", "dead", "missing", "unknown"]);
 
-const Relationship = z.object({
-	target: Wikilink,
-	kind: z.string().min(1),
-	notes: z.string().optional(),
-});
-
 export const NPCSchema = BaseEntity.extend({
 	kind: z.literal("npc"),
 	disposition: Disposition.default("neutral"),
@@ -25,7 +19,13 @@ export const NPCSchema = BaseEntity.extend({
 	race: z.string().optional(),
 	factions: WikilinkArray,
 	location: Wikilink.optional(),
-	relationships: z.array(Relationship).default([]),
+	// Flat relationship fields (editable in Obsidian's Properties panel).
+	// Each is a list of wikilinks; the field name supplies the edge label
+	// in the NPC relationship graph.
+	friends: WikilinkArray,
+	enemies: WikilinkArray,
+	rivals: WikilinkArray,
+	family: WikilinkArray,
 	statblock: z.string().optional(),
 	cr: z.union([z.number(), z.string()]).optional(),
 	first_seen: Wikilink.optional(),

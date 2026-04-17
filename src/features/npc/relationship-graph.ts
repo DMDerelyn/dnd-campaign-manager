@@ -91,27 +91,26 @@ export class NPCGraphView extends ItemView {
 			for (const a of e.aliases) nameToPath.set(a.toLowerCase(), e.path);
 		}
 
+		const linkFields: Array<{ field: string; label: string }> = [
+			{ field: "friends", label: "friend" },
+			{ field: "enemies", label: "enemy" },
+			{ field: "rivals", label: "rival" },
+			{ field: "family", label: "family" },
+			{ field: "factions", label: "member" },
+			{ field: "allies", label: "ally" },
+			{ field: "members", label: "member" },
+		];
+
 		for (const e of all) {
 			const fm = e.frontmatter;
 
-			if (Array.isArray(fm.relationships)) {
-				for (const rel of fm.relationships as Array<{ target?: string; kind?: string }>) {
-					const targetPath = resolveLink(rel.target, nameToPath);
+			for (const { field, label } of linkFields) {
+				const value = fm[field];
+				if (!Array.isArray(value)) continue;
+				for (const v of value) {
+					const targetPath = resolveLink(v, nameToPath);
 					if (targetPath && pathSet.has(targetPath)) {
-						this.edges.push({
-							from: e.path,
-							to: targetPath,
-							label: typeof rel.kind === "string" ? rel.kind : "",
-						});
-					}
-				}
-			}
-
-			if (Array.isArray(fm.factions)) {
-				for (const f of fm.factions as string[]) {
-					const targetPath = resolveLink(f, nameToPath);
-					if (targetPath && pathSet.has(targetPath)) {
-						this.edges.push({ from: e.path, to: targetPath, label: "member" });
+						this.edges.push({ from: e.path, to: targetPath, label });
 					}
 				}
 			}
@@ -120,24 +119,6 @@ export class NPCGraphView extends ItemView {
 				const targetPath = resolveLink(fm.leader, nameToPath);
 				if (targetPath && pathSet.has(targetPath)) {
 					this.edges.push({ from: e.path, to: targetPath, label: "leader" });
-				}
-			}
-
-			if (Array.isArray(fm.allies)) {
-				for (const a of fm.allies as string[]) {
-					const targetPath = resolveLink(a, nameToPath);
-					if (targetPath && pathSet.has(targetPath)) {
-						this.edges.push({ from: e.path, to: targetPath, label: "ally" });
-					}
-				}
-			}
-
-			if (Array.isArray(fm.enemies)) {
-				for (const a of fm.enemies as string[]) {
-					const targetPath = resolveLink(a, nameToPath);
-					if (targetPath && pathSet.has(targetPath)) {
-						this.edges.push({ from: e.path, to: targetPath, label: "enemy" });
-					}
 				}
 			}
 		}
@@ -165,16 +146,25 @@ export class NPCGraphView extends ItemView {
 		if (this.nodes.length === 0) {
 			const help = el.createDiv({ cls: "campaign-graph-empty" });
 			help.createEl("p", { text: "No NPCs or factions found in this campaign." });
-			help.createEl("p", { text: "To show relationships on the graph, edit an NPC's frontmatter like this:" });
-			const pre = help.createEl("pre");
-			pre.createEl("code", {
-				text: `relationships:
-  - target: "[[Other NPC Name]]"
-    kind: friend
-  - target: "[[Rival NPC]]"
-    kind: enemy`,
+			help.createEl("p", {
+				text: "To draw relationships on the graph, open an NPC and use the Properties panel (visible at the top of the note in Live Preview):",
 			});
-			help.createEl("p", { text: "Wikilinks must be in double-quotes in YAML (otherwise the [[...]] gets parsed as an empty list). Supported link sources: relationships[*].target, factions[], leader, allies[], enemies[]." });
+			const list = help.createEl("ol");
+			list.createEl("li", {
+				text: "Click '+ Add property' on the NPC's Properties panel.",
+			});
+			list.createEl("li", {
+				text: "Name it one of: friends, enemies, rivals, family, factions.",
+			});
+			list.createEl("li", {
+				text: "Set the property type to 'List'.",
+			});
+			list.createEl("li", {
+				text: "Add entries by typing the other NPC's name \u2014 Obsidian autocompletes wikilinks.",
+			});
+			help.createEl("p", {
+				text: "Each field renders as a different edge color: friends (grey), enemies (red), family/rivals (grey), allies (green). Factions also support leader, allies, and enemies.",
+			});
 			return;
 		}
 
@@ -214,7 +204,11 @@ export class NPCGraphView extends ItemView {
 			const to = nodeByPath.get(edge.to);
 			if (!from || !to) continue;
 
-			const color = edge.label === "enemy" ? "#e55" : edge.label === "ally" ? "#5a5" : "#888";
+			const color = edge.label === "enemy" || edge.label === "rival"
+				? "#e55"
+				: edge.label === "friend" || edge.label === "family" || edge.label === "ally"
+					? "#5a5"
+					: "#999";
 			ctx.strokeStyle = color;
 			ctx.beginPath();
 			ctx.moveTo(from.x, from.y);
