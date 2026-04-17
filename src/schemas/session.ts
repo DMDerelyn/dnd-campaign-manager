@@ -9,7 +9,7 @@ const Scene = z.object({
 
 export const SessionSchema = BaseEntity.extend({
 	kind: z.literal("session"),
-	number: z.number().int().positive(),
+	number: z.number().int().nonnegative(),
 	date: z.string(),
 	in_game_date: z.string().optional(),
 	pcs_present: WikilinkArray,

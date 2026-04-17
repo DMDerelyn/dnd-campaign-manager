@@ -1,6 +1,7 @@
-import { ItemView, WorkspaceLeaf, TFile, MarkdownView } from "obsidian";
+import { ItemView, WorkspaceLeaf, TFile, MarkdownView, Notice } from "obsidian";
 import type CampaignPlugin from "../../main";
 import type { IndexedEntity } from "../../core/entity-index";
+import { EntityPickerModal } from "../../ui/modals/entity-picker";
 
 export const SESSION_RUNNER_VIEW_TYPE = "campaign-session-runner";
 
@@ -55,18 +56,34 @@ export class SessionRunnerView extends ItemView {
 	private renderHeader(el: HTMLElement): void {
 		const header = el.createDiv({ cls: "campaign-sr-header" });
 		const title = this.sessionFile?.basename ?? "No session loaded";
-		header.createEl("h3", { text: title });
+		const h = header.createEl("h3", { text: title });
+		if (!this.sessionFile) h.style.color = "var(--text-muted)";
 
 		const controls = header.createDiv({ cls: "campaign-sr-controls" });
 		const pickBtn = controls.createEl("button", { text: "Pick Session", cls: "campaign-init-btn" });
 		pickBtn.addEventListener("click", async () => {
 			const sessions = this.plugin.entityIndex.byKind("session");
-			if (sessions.length === 0) return;
-			const picked = await this.plugin.promptEntityPicker();
-			if (picked && picked.kind === "session") {
-				const file = this.app.vault.getAbstractFileByPath(picked.path);
-				if (file instanceof TFile) this.setSessionFile(file);
+			if (sessions.length === 0) {
+				new Notice(
+					"No sessions found. Create one with Campaign: Create Session, or check Campaign Issues for validation errors.",
+				);
+				return;
 			}
+			const modal = new EntityPickerModal(
+				this.app,
+				this.plugin.entityIndex,
+				["session"],
+				"Pick a session\u2026",
+			);
+			const picked = await modal.pick();
+			if (!picked) return;
+			const file = this.app.vault.getAbstractFileByPath(picked.path);
+			if (!(file instanceof TFile)) {
+				new Notice(`Could not open ${picked.path}`);
+				return;
+			}
+			this.setSessionFile(file);
+			new Notice(`Loaded session: ${file.basename}`);
 		});
 
 		const openBtn = controls.createEl("button", { text: "Open in Editor", cls: "campaign-init-btn" });
