@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, TFile, Setting } from "obsidian";
+import { ItemView, WorkspaceLeaf, TFile, Setting, Notice } from "obsidian";
 import type CampaignPlugin from "../../main";
 import {
 	type CombatState,
@@ -17,6 +17,7 @@ import {
 	currentCombatant,
 } from "./turn-engine";
 import { ulid } from "../../core/ulid";
+import { EntityPickerModal } from "../../ui/modals/entity-picker";
 
 export const INITIATIVE_VIEW_TYPE = "campaign-initiative";
 
@@ -79,14 +80,21 @@ export class InitiativeTrackerView extends ItemView {
 
 	private renderToolbar(el: HTMLElement): void {
 		const bar = el.createDiv({ cls: "campaign-init-toolbar" });
+
+		const activeRoot = this.plugin.getActiveCampaignRoot();
+		bar.createEl("div", {
+			text: `Campaign: ${activeRoot}`,
+			cls: "campaign-init-campaign-label",
+		});
+
 		const addPC = bar.createEl("button", { text: "Add PCs", cls: "campaign-init-btn" });
 		addPC.addEventListener("click", () => this.addPCsFromIndex());
 
 		const addNPC = bar.createEl("button", { text: "Add NPC", cls: "campaign-init-btn" });
-		addNPC.addEventListener("click", () => this.addManualCombatant(false));
+		addNPC.addEventListener("click", () => this.addNPCFromIndex());
 
 		const addCustom = bar.createEl("button", { text: "Add Custom", cls: "campaign-init-btn" });
-		addCustom.addEventListener("click", () => this.addManualCombatant(true));
+		addCustom.addEventListener("click", () => this.addManualCombatant(false));
 
 		const rollAll = bar.createEl("button", { text: "Roll All NPCs", cls: "campaign-init-btn" });
 		rollAll.addEventListener("click", () => this.rollAllNPCs());
@@ -197,9 +205,16 @@ export class InitiativeTrackerView extends ItemView {
 	}
 
 	private async addPCsFromIndex(): Promise<void> {
-		const pcs = this.plugin.entityIndex.byKind("pc");
-		if (pcs.length === 0) return;
+		const pcs = this.plugin.byKindInActiveCampaign("pc");
+		if (pcs.length === 0) {
+			const root = this.plugin.getActiveCampaignRoot();
+			new Notice(
+				`No PCs in active campaign (${root}). Create PCs with 'Campaign: Create PC' or open a file in a different campaign to switch.`,
+			);
+			return;
+		}
 		let s = this.state;
+		let added = 0;
 		for (const pc of pcs) {
 			if (s.combatants.some((c) => c.entityPath === pc.path)) continue;
 			const fm = pc.frontmatter;
@@ -208,9 +223,7 @@ export class InitiativeTrackerView extends ItemView {
 				id: ulid(),
 				name: pc.name,
 				entityPath: pc.path,
-				initiative: rollInitiativeValue(
-					typeof fm.initiative_bonus === "number" ? fm.initiative_bonus : 0,
-				),
+				initiative: 0,
 				hp: {
 					current: (hp?.current as number) ?? 10,
 					max: (hp?.max as number) ?? 10,
@@ -221,8 +234,49 @@ export class InitiativeTrackerView extends ItemView {
 				conditions: [],
 				notes: "",
 			});
+			added++;
 		}
 		this.update({ ...s, active: true });
+		if (added === 0) new Notice("All PCs already in tracker.");
+		else new Notice(`Added ${added} PC(s). Players should enter their own initiative, or edit the field.`);
+	}
+
+	private async addNPCFromIndex(): Promise<void> {
+		const npcs = this.plugin.byKindInActiveCampaign("npc");
+		if (npcs.length === 0) {
+			new Notice("No NPCs in active campaign. Use 'Add Custom' for one-off enemies.");
+			return;
+		}
+		const modal = new EntityPickerModal(
+			this.app,
+			this.plugin.entityIndex,
+			["npc"],
+			"Pick an NPC to add to combat\u2026",
+		);
+		const picked = await modal.pick();
+		if (!picked) return;
+		const root = this.plugin.getActiveCampaignRoot();
+		if (!picked.path.startsWith(`${root}/`)) {
+			new Notice(`That NPC isn't in the active campaign (${root}).`);
+			return;
+		}
+		const fm = picked.frontmatter;
+		const hp = fm.hp as { current?: number; max?: number } | undefined;
+		const hpMax = typeof hp?.max === "number" ? hp.max : typeof fm.hp_max === "number" ? fm.hp_max : 10;
+		this.update(
+			addCombatant(this.state, {
+				id: ulid(),
+				name: picked.name,
+				entityPath: picked.path,
+				initiative: 0,
+				hp: { current: hpMax, max: hpMax, temp: 0 },
+				ac: typeof fm.ac === "number" ? fm.ac : 10,
+				isPC: false,
+				conditions: [],
+				notes: "",
+			}),
+		);
+		new Notice(`Added ${picked.name}. Click Roll All NPCs to roll initiative.`);
 	}
 
 	private addManualCombatant(isPC: boolean): void {
@@ -234,12 +288,16 @@ export class InitiativeTrackerView extends ItemView {
 
 	private rollAllNPCs(): void {
 		let s = this.state;
+		let rolled = 0;
 		for (const c of s.combatants) {
 			if (!c.isPC) {
 				s = updateInitiative(s, c.id, rollInitiativeValue());
+				rolled++;
 			}
 		}
 		this.update(s);
+		if (rolled === 0) new Notice("No NPCs to roll.");
+		else new Notice(`Rolled initiative for ${rolled} NPC(s).`);
 	}
 
 	private showConditionPicker(combatant: Combatant): void {
@@ -291,7 +349,7 @@ class AddCombatantModal extends Modal {
 					this.onSubmit({
 						id: ulid(),
 						name: this.name.trim(),
-						initiative: this.initiative || rollInitiativeValue(),
+						initiative: this.initiative,
 						hp: { current: this.hp, max: this.hp, temp: 0 },
 						ac: this.ac,
 						isPC: this.isPC,

@@ -174,6 +174,12 @@ export default class CampaignPlugin extends Plugin {
 		return folders.sort();
 	}
 
+	/** Entities of a kind, filtered to the active campaign's folder tree. */
+	byKindInActiveCampaign(kind: EntityKind) {
+		const root = this.getActiveCampaignRoot();
+		return this.entityIndex.byKind(kind).filter((e) => e.path.startsWith(`${root}/`));
+	}
+
 	async createEntity(kind: EntityKind, name: string): Promise<TFile> {
 		const folder = this.resolvePath(this.settings.folders[kind]);
 		await this.ensureFolder(folder);

@@ -25,6 +25,12 @@ export class NPCGraphView extends ItemView {
 	private offsetX = 0;
 	private offsetY = 0;
 
+	private zoom = 1;
+	private panX = 0;
+	private panY = 0;
+	private isPanning = false;
+	private panStart = { x: 0, y: 0 };
+
 	constructor(
 		leaf: WorkspaceLeaf,
 		private plugin: CampaignPlugin,
@@ -57,8 +63,8 @@ export class NPCGraphView extends ItemView {
 	}
 
 	private buildGraph(): void {
-		const npcs = this.plugin.entityIndex.byKind("npc");
-		const factions = this.plugin.entityIndex.byKind("faction");
+		const npcs = this.plugin.byKindInActiveCampaign("npc");
+		const factions = this.plugin.byKindInActiveCampaign("faction");
 		const all = [...npcs, ...factions];
 
 		const pathSet = new Set(all.map((e) => e.path));
@@ -142,8 +148,33 @@ export class NPCGraphView extends ItemView {
 		el.empty();
 		el.addClass("campaign-npc-graph");
 
+		const toolbar = el.createDiv({ cls: "campaign-map-toolbar" });
+		const activeRoot = this.plugin.getActiveCampaignRoot();
+		toolbar.createEl("span", {
+			text: `Campaign: ${activeRoot}`,
+			cls: "campaign-init-campaign-label",
+		});
+		const resetBtn = toolbar.createEl("button", { text: "Reset View", cls: "campaign-init-btn" });
+		resetBtn.addEventListener("click", () => {
+			this.zoom = 1;
+			this.panX = 0;
+			this.panY = 0;
+			this.draw();
+		});
+
 		if (this.nodes.length === 0) {
-			el.createEl("p", { text: "No NPCs or factions to graph.", cls: "campaign-init-empty" });
+			const help = el.createDiv({ cls: "campaign-graph-empty" });
+			help.createEl("p", { text: "No NPCs or factions found in this campaign." });
+			help.createEl("p", { text: "To show relationships on the graph, edit an NPC's frontmatter like this:" });
+			const pre = help.createEl("pre");
+			pre.createEl("code", {
+				text: `relationships:
+  - target: "[[Other NPC Name]]"
+    kind: friend
+  - target: "[[Rival NPC]]"
+    kind: enemy`,
+			});
+			help.createEl("p", { text: "Wikilinks must be in double-quotes in YAML (otherwise the [[...]] gets parsed as an empty list). Supported link sources: relationships[*].target, factions[], leader, allies[], enemies[]." });
 			return;
 		}
 
@@ -151,9 +182,11 @@ export class NPCGraphView extends ItemView {
 		this.canvas.width = 800;
 		this.canvas.height = 600;
 
+		this.canvas.addEventListener("wheel", (e) => this.onWheel(e), { passive: false });
 		this.canvas.addEventListener("mousedown", (e) => this.onMouseDown(e));
 		this.canvas.addEventListener("mousemove", (e) => this.onMouseMove(e));
 		this.canvas.addEventListener("mouseup", () => this.onMouseUp());
+		this.canvas.addEventListener("mouseleave", () => this.onMouseUp());
 		this.canvas.addEventListener("dblclick", (e) => this.onDblClick(e));
 
 		this.draw();
@@ -168,10 +201,14 @@ export class NPCGraphView extends ItemView {
 		const h = this.canvas.height;
 		ctx.clearRect(0, 0, w, h);
 
+		ctx.save();
+		ctx.translate(this.panX, this.panY);
+		ctx.scale(this.zoom, this.zoom);
+
 		const nodeByPath = new Map<string, GraphNode>();
 		for (const n of this.nodes) nodeByPath.set(n.entity.path, n);
 
-		ctx.lineWidth = 1;
+		ctx.lineWidth = 1.5;
 		for (const edge of this.edges) {
 			const from = nodeByPath.get(edge.from);
 			const to = nodeByPath.get(edge.to);
@@ -208,22 +245,26 @@ export class NPCGraphView extends ItemView {
 			ctx.fillStyle = "#fff";
 			ctx.font = "11px sans-serif";
 			ctx.textAlign = "center";
-			const label = node.entity.name.length > 12
-				? node.entity.name.slice(0, 11) + "\u2026"
+			const label = node.entity.name.length > 16
+				? node.entity.name.slice(0, 15) + "\u2026"
 				: node.entity.name;
 			ctx.fillText(label, node.x, node.y + r + 14);
 		}
+
+		ctx.restore();
 	}
 
-	private hitTest(mx: number, my: number): GraphNode | null {
+	private hitTest(wx: number, wy: number): GraphNode | null {
 		for (const n of this.nodes) {
-			const dx = mx - n.x;
-			const dy = my - n.y;
-			if (dx * dx + dy * dy < 400) return n;
+			const dx = wx - n.x;
+			const dy = wy - n.y;
+			const hitR = n.entity.kind === "npc" ? 18 : 14;
+			if (dx * dx + dy * dy < hitR * hitR) return n;
 		}
 		return null;
 	}
 
+	/** Convert a mouse event to canvas pixel coordinates. */
 	private canvasCoords(e: MouseEvent): { x: number; y: number } {
 		if (!this.canvas) return { x: 0, y: 0 };
 		const rect = this.canvas.getBoundingClientRect();
@@ -233,31 +274,63 @@ export class NPCGraphView extends ItemView {
 		};
 	}
 
+	/** Convert canvas pixels to world coordinates (undo pan + zoom). */
+	private toWorld(px: number, py: number): { x: number; y: number } {
+		return {
+			x: (px - this.panX) / this.zoom,
+			y: (py - this.panY) / this.zoom,
+		};
+	}
+
+	private onWheel(e: WheelEvent): void {
+		e.preventDefault();
+		const { x: cx, y: cy } = this.canvasCoords(e);
+		const before = this.toWorld(cx, cy);
+		const factor = e.deltaY > 0 ? 0.9 : 1.1;
+		this.zoom = Math.max(0.2, Math.min(5, this.zoom * factor));
+		const after = this.toWorld(cx, cy);
+		this.panX += (after.x - before.x) * this.zoom;
+		this.panY += (after.y - before.y) * this.zoom;
+		this.draw();
+	}
+
 	private onMouseDown(e: MouseEvent): void {
-		const { x, y } = this.canvasCoords(e);
-		const hit = this.hitTest(x, y);
+		const canvasPt = this.canvasCoords(e);
+		const world = this.toWorld(canvasPt.x, canvasPt.y);
+		const hit = this.hitTest(world.x, world.y);
 		if (hit) {
 			this.dragNode = hit;
-			this.offsetX = x - hit.x;
-			this.offsetY = y - hit.y;
+			this.offsetX = world.x - hit.x;
+			this.offsetY = world.y - hit.y;
+		} else {
+			this.isPanning = true;
+			this.panStart = { x: e.clientX - this.panX, y: e.clientY - this.panY };
 		}
 	}
 
 	private onMouseMove(e: MouseEvent): void {
-		if (!this.dragNode) return;
-		const { x, y } = this.canvasCoords(e);
-		this.dragNode.x = x - this.offsetX;
-		this.dragNode.y = y - this.offsetY;
-		this.draw();
+		if (this.dragNode) {
+			const canvasPt = this.canvasCoords(e);
+			const world = this.toWorld(canvasPt.x, canvasPt.y);
+			this.dragNode.x = world.x - this.offsetX;
+			this.dragNode.y = world.y - this.offsetY;
+			this.draw();
+		} else if (this.isPanning) {
+			this.panX = e.clientX - this.panStart.x;
+			this.panY = e.clientY - this.panStart.y;
+			this.draw();
+		}
 	}
 
 	private onMouseUp(): void {
 		this.dragNode = null;
+		this.isPanning = false;
 	}
 
 	private onDblClick(e: MouseEvent): void {
-		const { x, y } = this.canvasCoords(e);
-		const hit = this.hitTest(x, y);
+		const canvasPt = this.canvasCoords(e);
+		const world = this.toWorld(canvasPt.x, canvasPt.y);
+		const hit = this.hitTest(world.x, world.y);
 		if (hit) {
 			const file = this.app.vault.getAbstractFileByPath(hit.entity.path);
 			if (file instanceof TFile) this.app.workspace.getLeaf(false).openFile(file);
@@ -267,6 +340,8 @@ export class NPCGraphView extends ItemView {
 
 function resolveLink(val: unknown, nameToPath: Map<string, string>): string | undefined {
 	if (typeof val !== "string") return undefined;
-	const name = val.replace(/^\[\[(.+?)(\|.+)?\]\]$/, "$1").toLowerCase();
+	const bracketed = val.match(/^\[\[([^\]|]+)(?:\|[^\]]+)?\]\]$/);
+	const name = (bracketed ? bracketed[1] : val).trim().toLowerCase();
+	if (!name) return undefined;
 	return nameToPath.get(name);
 }
