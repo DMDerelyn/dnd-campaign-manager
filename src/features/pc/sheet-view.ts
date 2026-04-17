@@ -159,7 +159,6 @@ export class PCSheetView extends ItemView {
 import { Modal, Setting, Notice } from "obsidian";
 import { fetchDDBCharacter } from "./ddb-import/url-scraper";
 import { normalizeDDBCharacter, type NormalizedPC } from "./ddb-import/normalize";
-import { parseDDBJson } from "./ddb-import/json-parser";
 
 class DDBImportModal extends Modal {
 	constructor(private plugin: CampaignPlugin) {
@@ -170,12 +169,17 @@ class DDBImportModal extends Modal {
 		const { contentEl } = this;
 		contentEl.createEl("h3", { text: "Import from D&D Beyond" });
 
-		contentEl.createEl("p", { text: "Paste a DDB character URL (character must be public) or Beyond20 JSON export." });
-
-		const input = contentEl.createEl("textarea", {
-			cls: "campaign-sr-capture-input",
-			attr: { rows: "4", placeholder: "https://www.dndbeyond.com/characters/12345678 or { ... JSON ... }" },
+		contentEl.createEl("p", {
+			text: "Paste a D&D Beyond character URL. The character must be set to public on D&D Beyond for the import to work.",
 		});
+
+		const input = contentEl.createEl("input", {
+			type: "text",
+			cls: "campaign-sr-capture-input",
+			attr: { placeholder: "https://www.dndbeyond.com/characters/12345678" },
+		});
+		input.style.width = "100%";
+		input.focus();
 
 		new Setting(contentEl)
 			.addButton((b) => b.setButtonText("Cancel").onClick(() => this.close()))
@@ -187,13 +191,8 @@ class DDBImportModal extends Modal {
 						const val = input.value.trim();
 						if (!val) return;
 						try {
-							let normalized: NormalizedPC;
-							if (val.startsWith("{") || val.startsWith("[")) {
-								normalized = parseDDBJson(val);
-							} else {
-								const raw = await fetchDDBCharacter(val);
-								normalized = normalizeDDBCharacter(raw, val);
-							}
+							const raw = await fetchDDBCharacter(val);
+							const normalized = normalizeDDBCharacter(raw, val);
 							await this.createPCFile(normalized);
 							new Notice(`Imported ${normalized.aliases[0] ?? "PC"} from D&D Beyond.`);
 							this.close();
