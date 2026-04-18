@@ -2,6 +2,8 @@
 
 Plan, run, and publish D&D 5e campaigns entirely inside Obsidian. One plugin replaces a stack of single-purpose tools: typed entity management, a session runner dashboard, an in-house initiative tracker, an interactive map with fog of war, a static site exporter, and more.
 
+> **Device support:** Optimized for desktop and tablet use. Mobile (phone) is usable for quick additions and references — slash commands, secrets, quick notes, statblock reading, quest board, timeline — but canvas-based views (Campaign Map, NPC Relationship Graph) are not an ideal experience on small touch screens. Multi-panel layouts like the Session Runner also work best with a wider display.
+
 ---
 
 ## Quick Start

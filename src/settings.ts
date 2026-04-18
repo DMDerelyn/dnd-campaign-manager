@@ -51,6 +51,12 @@ export class CampaignSettingTab extends PluginSettingTab {
 
 		containerEl.createEl("h2", { text: "TTRPG Campaign settings" });
 
+		const deviceNote = containerEl.createDiv({ cls: "campaign-dep-status" });
+		deviceNote.createEl("p", {
+			text: "Optimized for desktop and tablet. Mobile is usable for quick additions and references (slash commands, secrets, quick notes, statblocks, quest board, timeline), but canvas views (Campaign Map, NPC Relationship Graph) and multi-panel layouts are not ideal on small touch screens.",
+			cls: "campaign-dep-note",
+		});
+
 		containerEl.createEl("h3", { text: "Theme" });
 		new Setting(containerEl)
 			.setName("D&D Theme")
