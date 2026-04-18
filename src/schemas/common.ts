@@ -37,5 +37,8 @@ export const BaseEntity = z.object({
 	tags: z.array(z.string()).default([]),
 	created: IsoDate.optional(),
 	updated: IsoDate.optional(),
+	schema_version: z.number().int().nonnegative().default(1),
+	canonical_name: z.string().min(1).optional(),
+	summary: z.string().max(240).optional(),
 });
 export type BaseEntity = z.infer<typeof BaseEntity>;

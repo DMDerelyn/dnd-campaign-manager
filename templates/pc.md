@@ -9,6 +9,7 @@ kind: pc
 aliases: []
 visibility: both
 tags: [pc]
+schema_version: 1
 player:
 class:
 level: 1

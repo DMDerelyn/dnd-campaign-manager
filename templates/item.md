@@ -9,6 +9,7 @@ kind: item
 aliases: []
 visibility: both
 tags: [item]
+schema_version: 1
 rarity: common
 attunement: false
 owner:

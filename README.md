@@ -516,6 +516,28 @@ A chronological `ItemView` that aggregates every `## Session log` bullet from ev
 
 ---
 
+## Interoperability
+
+The plugin is designed to stay usable on its own, and to interoperate cleanly with a future hosted memory service (`campaign-scribe`, planned for v0.6) and other tools in the same ecosystem.
+
+Every entity writes an envelope with a version stamp:
+
+- `id` (ULID), `kind`, `aliases`, `visibility`, `tags`
+- `schema_version: 1`
+- `canonical_name` (optional; falls back to the note's file name)
+- `summary` (optional, ≤240 characters)
+- `created`, `updated` (ISO 8601)
+
+`NOTICE.md` lists the exact values of every shared enum (`EntityKind`, `Visibility`, `Disposition`, `NPCStatus`, `QuestState`, `LocationType`, `ItemRarity`). Renaming or adding a value is treated as a `schema_version` bump.
+
+A few things the plugin **does not** adopt on purpose:
+
+- **Flat relationship fields (`friends:`, `factions:`, etc.) remain canonical**, editable directly in Obsidian's Properties panel. When a central relationship service lands, it will merge with those fields rather than replace them — the offline, in-Obsidian experience stays first-class.
+- **Per-character visibility** is not modeled. Files are `gm`, `player`, or `both`. Per-player fog of knowledge is a future concern tied to the publishing pipeline, not a v0.1 field.
+- **No codegen / shared npm package.** The Zod schemas here are hand-written and ~200 LoC total; pulling them through a generator for a single TypeScript consumer isn't worth the build complexity yet.
+
+---
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

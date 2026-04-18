@@ -9,6 +9,7 @@ kind: npc
 aliases: []
 visibility: gm
 tags: [npc]
+schema_version: 1
 disposition: neutral
 status: alive
 role:

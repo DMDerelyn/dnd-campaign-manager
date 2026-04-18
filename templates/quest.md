@@ -9,6 +9,7 @@ kind: quest
 aliases: []
 visibility: gm
 tags: [quest]
+schema_version: 1
 state: hook
 giver:
 location:

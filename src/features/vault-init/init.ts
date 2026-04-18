@@ -10,6 +10,7 @@ kind: npc
 aliases: []
 visibility: gm
 tags: [npc]
+schema_version: 1
 disposition: neutral
 status: alive
 role:
@@ -62,6 +63,7 @@ kind: pc
 aliases: []
 visibility: both
 tags: [pc]
+schema_version: 1
 player:
 class:
 subclass:
@@ -125,6 +127,7 @@ kind: quest
 aliases: []
 visibility: gm
 tags: [quest]
+schema_version: 1
 state: hook
 giver:
 location:
@@ -175,6 +178,7 @@ kind: location
 aliases: []
 visibility: both
 tags: [location]
+schema_version: 1
 type: poi
 parent:
 population:
@@ -223,6 +227,7 @@ kind: session
 aliases: []
 visibility: both
 tags: [session]
+schema_version: 1
 number: 1
 date: {{DATE}}
 in_game_date:
@@ -285,6 +290,7 @@ kind: faction
 aliases: []
 visibility: gm
 tags: [faction]
+schema_version: 1
 alignment:
 goals: []
 leader:
@@ -337,6 +343,7 @@ kind: item
 aliases: []
 visibility: both
 tags: [item]
+schema_version: 1
 rarity: common
 attunement: false
 owner:

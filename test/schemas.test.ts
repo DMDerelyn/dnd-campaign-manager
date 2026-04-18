@@ -96,4 +96,40 @@ describe("validateFrontmatter", () => {
 		});
 		expect(r.ok).toBe(true);
 	});
+
+	it("defaults schema_version to 1 when absent", () => {
+		const r = validateFrontmatter({
+			...baseValid,
+			kind: "npc",
+			disposition: "neutral",
+		});
+		expect(r.ok).toBe(true);
+		if (r.ok) expect(r.data.schema_version).toBe(1);
+	});
+
+	it("accepts explicit schema_version, canonical_name, and summary", () => {
+		const r = validateFrontmatter({
+			...baseValid,
+			kind: "npc",
+			disposition: "neutral",
+			schema_version: 1,
+			canonical_name: "Volothamp Geddarm",
+			summary: "Scholar and author of renown.",
+		});
+		expect(r.ok).toBe(true);
+		if (r.ok) {
+			expect(r.data.canonical_name).toBe("Volothamp Geddarm");
+			expect(r.data.summary).toBe("Scholar and author of renown.");
+		}
+	});
+
+	it("rejects a summary longer than 240 characters", () => {
+		const r = validateFrontmatter({
+			...baseValid,
+			kind: "npc",
+			disposition: "neutral",
+			summary: "x".repeat(241),
+		});
+		expect(r.ok).toBe(false);
+	});
 });

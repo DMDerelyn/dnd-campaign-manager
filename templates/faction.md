@@ -9,6 +9,7 @@ kind: faction
 aliases: []
 visibility: gm
 tags: [faction]
+schema_version: 1
 alignment:
 goals: []
 leader:

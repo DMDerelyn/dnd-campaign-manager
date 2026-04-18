@@ -11,6 +11,7 @@ kind: session
 aliases: []
 visibility: both
 tags: [session]
+schema_version: 1
 number: <% numStr %>
 date: <% tp.date.now("YYYY-MM-DD") %>
 in_game_date:

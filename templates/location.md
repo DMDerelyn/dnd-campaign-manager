@@ -9,6 +9,7 @@ kind: location
 aliases: []
 visibility: both
 tags: [location]
+schema_version: 1
 type: poi
 parent:
 map_image:
