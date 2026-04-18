@@ -57,7 +57,7 @@ export class SessionRunnerView extends ItemView {
 		const header = el.createDiv({ cls: "campaign-sr-header" });
 		const title = this.sessionFile?.basename ?? "No session loaded";
 		const h = header.createEl("h3", { text: title });
-		if (!this.sessionFile) h.style.color = "var(--text-muted)";
+		if (!this.sessionFile) h.addClass("campaign-sr-header-empty");
 
 		const controls = header.createDiv({ cls: "campaign-sr-controls" });
 		const pickBtn = controls.createEl("button", { text: "Pick Session", cls: "campaign-init-btn" });

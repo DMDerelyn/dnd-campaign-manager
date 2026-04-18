@@ -49,7 +49,7 @@ export class CampaignSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		containerEl.createEl("h2", { text: "TTRPG Campaign settings" });
+		containerEl.createEl("h2", { text: "D&D Campaign Manager settings" });
 
 		const deviceNote = containerEl.createDiv({ cls: "campaign-dep-status" });
 		deviceNote.createEl("p", {

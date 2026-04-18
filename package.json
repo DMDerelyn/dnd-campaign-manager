@@ -1,5 +1,5 @@
 {
-  "name": "obsidian-ttrpg",
+  "name": "dnd-campaign-manager",
   "version": "0.1.0",
   "description": "D&D 5e campaign plugin for Obsidian",
   "main": "main.js",

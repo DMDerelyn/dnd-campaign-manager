@@ -1,4 +1,4 @@
-# Obsidian TTRPG Campaign Plugin
+# D&D Campaign Manager
 
 Plan, run, and publish D&D 5e campaigns entirely inside Obsidian. One plugin replaces a stack of single-purpose tools: typed entity management, a session runner dashboard, an in-house initiative tracker, an interactive map with fog of war, a static site exporter, and more.
 
@@ -8,10 +8,10 @@ Plan, run, and publish D&D 5e campaigns entirely inside Obsidian. One plugin rep
 
 ## Quick Start
 
-1. **Install** — Copy `main.js`, `manifest.json`, and `styles.css` into your vault's `.obsidian/plugins/obsidian-ttrpg/` folder. Enable the plugin in Settings > Community Plugins.
+1. **Install** — Copy `main.js`, `manifest.json`, and `styles.css` into your vault's `.obsidian/plugins/dnd-campaign-manager/` folder. Enable the plugin in Settings > Community Plugins.
 2. **Initialize your vault** — Open the command palette (`Ctrl/Cmd + P`) and run **"Campaign: Initialize Campaign Vault"**. Enter your campaign name (e.g., *Curse of Strahd*). This creates all the folders and templates you need.
 3. **Create your first entity** — Run **"Campaign: Create NPC"** from the command palette, or type `/add npc Goruk the Mighty` in any note.
-4. **Pick a theme** — Go to Settings > TTRPG Campaign > Theme and choose **Player's Handbook** (parchment & red) or **Dungeon Master's Guide** (dark & gold).
+4. **Pick a theme** — Go to Settings > D&D Campaign Manager > Theme and choose **Player's Handbook** (parchment & red) or **Dungeon Master's Guide** (dark & gold).
 
 ### Required Companion Plugins
 
@@ -300,7 +300,7 @@ Generates a static HTML website from your campaign entities. Perfect for sharing
 - Wikilinks become clickable HTML links between pages
 
 **Publishing workflow:**
-1. Configure in Settings > TTRPG Campaign > Publishing: set your export folder and site title
+1. Configure in Settings > D&D Campaign Manager > Publishing: set your export folder and site title
 2. Run the export command — HTML files appear in `Campaign/_site/`
 3. (Optional) Set up the export folder as a git repo pointing at Cloudflare Pages, Netlify, or GitHub Pages. Then use "Export and git push" for one-click publishing.
 
@@ -310,7 +310,7 @@ Generates a static HTML website from your campaign entities. Perfect for sharing
 
 ### D&D Themes
 
-**Setting:** Settings > TTRPG Campaign > Theme
+**Setting:** Settings > D&D Campaign Manager > Theme
 
 | Theme | Look |
 |---|---|

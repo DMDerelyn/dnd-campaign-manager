@@ -86,7 +86,7 @@
 .campaign-init-active { background: var(--background-secondary); border-color: var(--text-accent); }
 .campaign-init-down { opacity: 0.5; }
 .campaign-init-row-left { display: flex; align-items: center; justify-content: flex-start; gap: 0.4em; }
-.campaign-init-init-input { font-family: var(--font-monospace); text-align: center; }
+.campaign-init-init-input { font-family: var(--font-monospace); text-align: center; width: 3em; }
 .campaign-init-name { font-weight: 500; }
 .campaign-init-name-link { cursor: pointer; color: var(--text-accent); }
 .campaign-init-name-link:hover { text-decoration: underline; }
@@ -96,7 +96,21 @@
 	height: 6px; width: 100%; max-width: 180px; border-radius: 3px; overflow: hidden;
 	background: var(--background-modifier-border);
 }
-.campaign-init-hp-fill { height: 100%; transition: width 0.2s; }
+.campaign-init-hp-fill {
+	height: 100%;
+	width: var(--hp-pct, 0%);
+	transition: width 0.2s;
+	background: var(--color-red);
+}
+.campaign-init-hp-fill-high { background: var(--color-green); }
+.campaign-init-hp-fill-mid { background: var(--color-yellow); }
+.campaign-init-hp-fill-low { background: var(--color-red); }
+
+/* Full-width input for modals */
+.campaign-modal-input-full { width: 100%; }
+
+/* Muted session header when no session is picked */
+.campaign-sr-header-empty { color: var(--text-muted); }
 .campaign-init-hp-text { font-size: 0.8em; color: var(--text-muted); }
 .campaign-init-hp-controls { display: flex; gap: 0.2em; }
 .campaign-init-hp-btn {

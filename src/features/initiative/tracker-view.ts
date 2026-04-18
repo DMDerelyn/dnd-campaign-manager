@@ -160,7 +160,6 @@ export class InitiativeTrackerView extends ItemView {
 			cls: "campaign-init-init-input",
 			value: String(c.initiative),
 		});
-		initInput.style.width = "3em";
 		initInput.addEventListener("change", () => {
 			this.update(updateInitiative(this.state, c.id, parseInt(initInput.value, 10) || 0));
 		});
@@ -193,9 +192,9 @@ export class InitiativeTrackerView extends ItemView {
 		const mid = row.createDiv({ cls: "campaign-init-row-mid" });
 		const hpBar = mid.createDiv({ cls: "campaign-init-hp-bar" });
 		const pct = c.hp.max > 0 ? Math.max(0, c.hp.current / c.hp.max) * 100 : 0;
-		const fill = hpBar.createDiv({ cls: "campaign-init-hp-fill" });
-		fill.style.width = `${pct}%`;
-		fill.style.backgroundColor = pct > 50 ? "var(--color-green)" : pct > 25 ? "var(--color-yellow)" : "var(--color-red)";
+		const hpClass = pct > 50 ? "campaign-init-hp-fill-high" : pct > 25 ? "campaign-init-hp-fill-mid" : "campaign-init-hp-fill-low";
+		const fill = hpBar.createDiv({ cls: `campaign-init-hp-fill ${hpClass}` });
+		fill.style.setProperty("--hp-pct", `${pct}%`);
 
 		const hpText = mid.createEl("span", {
 			text: `${c.hp.current}/${c.hp.max}${c.hp.temp > 0 ? ` +${c.hp.temp}t` : ""} HP | AC ${c.ac}`,

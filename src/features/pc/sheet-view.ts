@@ -175,10 +175,9 @@ class DDBImportModal extends Modal {
 
 		const input = contentEl.createEl("input", {
 			type: "text",
-			cls: "campaign-sr-capture-input",
+			cls: "campaign-sr-capture-input campaign-modal-input-full",
 			attr: { placeholder: "https://www.dndbeyond.com/characters/12345678" },
 		});
-		input.style.width = "100%";
 		input.focus();
 
 		new Setting(contentEl)

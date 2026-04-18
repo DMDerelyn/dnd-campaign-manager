@@ -4,6 +4,7 @@ import {
 	MarkdownView,
 	Modal,
 	Notice,
+	Platform,
 	Plugin,
 	Setting,
 	TFile,
@@ -367,28 +368,31 @@ export default class CampaignPlugin extends Plugin {
 				new Notice(`Exported ${result.filesExported} page(s) (GM content included).`);
 			},
 		});
-		this.addCommand({
-			id: "publish-git-push",
-			name: "Publish: Export and git push",
-			callback: async () => {
-				try {
-					await exportStaticSite(this.app, this.entityIndex, {
-						outputPath: this.resolvePath(this.settings.publishFolder),
-						title: this.settings.publishTitle,
-						includeGM: false,
-					});
-					const out = await gitPublish(this.app, {
-						repoPath: this.resolvePath(this.settings.publishFolder),
-						remoteName: this.settings.gitRemote,
-						branch: this.settings.gitBranch,
-						commitMessage: "",
-					});
-					new Notice(`Published and pushed. ${out}`);
-				} catch (err) {
-					new Notice(`Publish failed: ${(err as Error).message}`);
-				}
-			},
-		});
+		// Git push relies on Node's child_process; it only works on desktop.
+		if (!Platform.isMobile) {
+			this.addCommand({
+				id: "publish-git-push",
+				name: "Publish: Export and git push",
+				callback: async () => {
+					try {
+						await exportStaticSite(this.app, this.entityIndex, {
+							outputPath: this.resolvePath(this.settings.publishFolder),
+							title: this.settings.publishTitle,
+							includeGM: false,
+						});
+						const out = await gitPublish(this.app, {
+							repoPath: this.resolvePath(this.settings.publishFolder),
+							remoteName: this.settings.gitRemote,
+							branch: this.settings.gitBranch,
+							commitMessage: "",
+						});
+						new Notice(`Published and pushed. ${out}`);
+					} catch (err) {
+						new Notice(`Publish failed: ${(err as Error).message}`);
+					}
+				},
+			});
+		}
 		this.addCommand({
 			id: "secrets-add",
 			name: "Secrets: Add a secret or clue to the pool",
@@ -628,8 +632,10 @@ class PromptModal extends Modal {
 	}
 	onOpen(): void {
 		this.contentEl.createEl("h3", { text: this.placeholder });
-		const input = this.contentEl.createEl("input", { type: "text" });
-		input.style.width = "100%";
+		const input = this.contentEl.createEl("input", {
+			type: "text",
+			cls: "campaign-modal-input-full",
+		});
 		input.focus();
 
 		// Stop Enter/Escape from bubbling into the editor below. Without
