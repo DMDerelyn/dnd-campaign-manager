@@ -60,6 +60,18 @@ import {
 	ENTITY_TEMPLATES,
 	populateTemplate,
 } from "./features/vault-init/init";
+import {
+	addSecret,
+	revealSecret,
+	getOrCreateSecretsFile,
+	parseSecrets,
+} from "./features/secrets/secrets";
+import { renderStatblock } from "./features/statblock/renderer";
+import { generateName } from "./features/names/generator";
+import {
+	TimelineView,
+	TIMELINE_VIEW_TYPE,
+} from "./features/timeline/timeline-view";
 
 export default class CampaignPlugin extends Plugin {
 	settings!: CampaignSettings;
@@ -107,8 +119,14 @@ export default class CampaignPlugin extends Plugin {
 			MAP_VIEW_TYPE,
 			(leaf) => new MapView(leaf, this),
 		);
+		this.registerView(
+			TIMELINE_VIEW_TYPE,
+			(leaf) => new TimelineView(leaf, this),
+		);
 
 		this.registerEditorSuggest(new SlashSuggest(this, buildSlashCommands()));
+
+		this.registerMarkdownCodeBlockProcessor("campaign-statblock", renderStatblock);
 
 		this.addSettingTab(new CampaignSettingTab(this.app, this));
 
@@ -319,6 +337,11 @@ export default class CampaignPlugin extends Plugin {
 			callback: () => this.activateView(MAP_VIEW_TYPE),
 		});
 		this.addCommand({
+			id: "open-timeline",
+			name: "Open Campaign Timeline",
+			callback: () => this.activateView(TIMELINE_VIEW_TYPE),
+		});
+		this.addCommand({
 			id: "publish-export",
 			name: "Publish: Export static site",
 			callback: async () => {
@@ -367,6 +390,57 @@ export default class CampaignPlugin extends Plugin {
 			},
 		});
 		this.addCommand({
+			id: "secrets-add",
+			name: "Secrets: Add a secret or clue to the pool",
+			callback: async () => {
+				const text = await this.promptText("What secret or clue should the players eventually discover?");
+				if (!text) return;
+				const root = this.getActiveCampaignRoot();
+				try {
+					await addSecret(this.app, root, text);
+					new Notice(`Added to secrets pool.`);
+				} catch (err) {
+					new Notice(`Add failed: ${(err as Error).message}`);
+				}
+			},
+		});
+		this.addCommand({
+			id: "secrets-reveal",
+			name: "Secrets: Reveal a secret to the players",
+			callback: async () => {
+				const root = this.getActiveCampaignRoot();
+				try {
+					const file = await getOrCreateSecretsFile(this.app, root);
+					const content = await this.app.vault.read(file);
+					const unrevealed = parseSecrets(content).filter((s) => !s.revealed);
+					if (unrevealed.length === 0) {
+						new Notice("No unrevealed secrets. Add some first.");
+						return;
+					}
+					const picked = await this.pickFromList(
+						"Pick a secret to reveal",
+						unrevealed.map((s) => s.text),
+					);
+					if (!picked) return;
+					const sessionFile = this.app.workspace.getActiveFile();
+					const sessionRef = sessionFile ? `[[${sessionFile.basename}]]` : "this session";
+					await revealSecret(this.app, root, picked, sessionRef);
+					new Notice(`Revealed: ${picked}`);
+				} catch (err) {
+					new Notice(`Reveal failed: ${(err as Error).message}`);
+				}
+			},
+		});
+		this.addCommand({
+			id: "secrets-open",
+			name: "Secrets: Open pool file",
+			callback: async () => {
+				const root = this.getActiveCampaignRoot();
+				const file = await getOrCreateSecretsFile(this.app, root);
+				await this.app.workspace.getLeaf(false).openFile(file);
+			},
+		});
+		this.addCommand({
 			id: "fix-frontmatter-current-file",
 			name: "Fix frontmatter position (current file)",
 			checkCallback: (checking) => {
@@ -398,7 +472,10 @@ export default class CampaignPlugin extends Plugin {
 				id: `create-${kind}`,
 				name: `Create ${kind.toUpperCase()}`,
 				callback: async () => {
-					const name = await this.promptText(`New ${kind} name`);
+					const options = kind === "npc"
+						? { suggestLabel: "Generate name", suggest: () => generateName().full }
+						: undefined;
+					const name = await this.promptText(`New ${kind} name`, options);
 					if (!name) return;
 					const file = await this.createEntity(kind, name);
 					await this.app.workspace.getLeaf(false).openFile(file);
@@ -462,9 +539,21 @@ export default class CampaignPlugin extends Plugin {
 		});
 	}
 
-	promptText(placeholder: string): Promise<string | null> {
+	generateNPCName(): string {
+		return generateName().full;
+	}
+
+	promptText(
+		placeholder: string,
+		options?: { suggestLabel?: string; suggest?: () => string },
+	): Promise<string | null> {
 		return new Promise((resolve) => {
-			const modal = new PromptModal(this.app, placeholder, (v) => resolve(v));
+			const modal = new PromptModal(
+				this.app,
+				placeholder,
+				(v) => resolve(v),
+				options,
+			);
 			modal.open();
 		});
 	}
@@ -533,6 +622,7 @@ class PromptModal extends Modal {
 		app: App,
 		private placeholder: string,
 		private resolve: (v: string | null) => void,
+		private options?: { suggestLabel?: string; suggest?: () => string },
 	) {
 		super(app);
 	}
@@ -571,7 +661,19 @@ class PromptModal extends Modal {
 		input.addEventListener("keypress", swallow);
 		input.addEventListener("keyup", swallow);
 
-		new Setting(this.contentEl)
+		const setting = new Setting(this.contentEl);
+		if (this.options?.suggest) {
+			const suggest = this.options.suggest;
+			setting.addButton((b) =>
+				b
+					.setButtonText(this.options?.suggestLabel ?? "Suggest")
+					.onClick(() => {
+						input.value = suggest();
+						input.focus();
+					}),
+			);
+		}
+		setting
 			.addButton((b) =>
 				b.setButtonText("Cancel").onClick(() => this.close()),
 			)

@@ -167,6 +167,111 @@
 	padding: 0.2em 0.4em; background: var(--background-secondary); border-radius: 3px;
 }
 
+/* Campaign Timeline */
+.campaign-timeline { padding: 0.5em 1em; overflow-y: auto; }
+.campaign-timeline-filter {
+	flex: 1; min-width: 120px; padding: 0.25em 0.5em;
+	border-radius: 4px; border: 1px solid var(--background-modifier-border);
+	background: var(--background-primary); color: var(--text-normal);
+}
+.campaign-timeline-list { display: flex; flex-direction: column; gap: 0.75em; margin-top: 0.75em; }
+.campaign-timeline-session {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	padding: 0.5em 0.75em;
+}
+.campaign-timeline-session-header {
+	display: flex; justify-content: space-between; align-items: baseline;
+	border-bottom: 1px solid var(--background-modifier-border);
+	padding-bottom: 0.3em; margin-bottom: 0.4em;
+}
+.campaign-timeline-session-title { font-weight: 600; cursor: pointer; color: var(--text-accent); }
+.campaign-timeline-session-title:hover { text-decoration: underline; }
+.campaign-timeline-session-date { color: var(--text-muted); font-size: 0.85em; }
+.campaign-timeline-entries { list-style: none; padding-left: 0; margin: 0; }
+.campaign-timeline-entries li {
+	padding: 0.2em 0; border-bottom: 1px solid var(--background-modifier-border);
+	font-size: 0.92em;
+}
+.campaign-timeline-entries li:last-child { border-bottom: none; }
+.campaign-timeline-entry-ts {
+	font-family: var(--font-monospace); color: var(--text-muted); font-size: 0.85em;
+}
+.campaign-timeline-empty-session { color: var(--text-muted); font-size: 0.9em; font-style: italic; }
+
+/* 5e-style statblock (campaign-statblock code block) */
+.campaign-statblock {
+	background: #fdf1dc;
+	color: #1a1a1a;
+	border: 1px solid #d4b37a;
+	border-top: 4px solid #8b2020;
+	border-bottom: 4px solid #8b2020;
+	padding: 0.75em 1em;
+	margin: 0.75em 0;
+	font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+	font-size: 0.95em;
+	line-height: 1.4;
+}
+.campaign-statblock-name {
+	font-family: "Palatino Linotype", Georgia, serif;
+	font-size: 1.35em;
+	color: #8b2020;
+	font-weight: bold;
+	letter-spacing: 0.02em;
+}
+.campaign-statblock-sub { font-style: italic; color: #444; margin-bottom: 0.3em; }
+.campaign-statblock-rule {
+	border-top: 1px solid #8b2020;
+	margin: 0.4em 0;
+}
+.campaign-statblock-attrs { color: #8b2020; }
+.campaign-statblock-attr-row { color: #1a1a1a; }
+.campaign-statblock-attr-row strong { color: #8b2020; }
+.campaign-statblock-stats {
+	width: 100%;
+	text-align: center;
+	border-collapse: collapse;
+	margin: 0.3em 0;
+}
+.campaign-statblock-stats th { color: #8b2020; font-size: 0.85em; padding: 0.1em 0.2em; }
+.campaign-statblock-stats td { padding: 0.1em 0.2em; }
+.campaign-statblock-section {
+	color: #8b2020;
+	font-variant: small-caps;
+	border-bottom: 1px solid #8b2020;
+	margin: 0.6em 0 0.2em 0;
+	font-size: 1.1em;
+	padding-bottom: 0.1em;
+}
+.campaign-statblock-action { margin: 0.35em 0; }
+.campaign-statblock-action em { font-style: italic; }
+.campaign-statblock-desc { margin-top: 0.3em; color: #222; }
+.campaign-statblock-error {
+	background: var(--background-secondary);
+	border: 1px solid var(--color-red);
+	padding: 0.5em;
+	border-radius: 4px;
+	color: var(--color-red);
+}
+
+/* Theme overrides keep the statblock readable inside dark themes */
+.campaign-theme-blackgold .campaign-statblock {
+	background: #2b1a10;
+	color: #e8dcc0;
+	border-color: #c9a84c;
+	border-top-color: #c9a84c;
+	border-bottom-color: #c9a84c;
+}
+.campaign-theme-blackgold .campaign-statblock-name,
+.campaign-theme-blackgold .campaign-statblock-attrs,
+.campaign-theme-blackgold .campaign-statblock-attr-row strong,
+.campaign-theme-blackgold .campaign-statblock-stats th,
+.campaign-theme-blackgold .campaign-statblock-section { color: #f4cf5a; }
+.campaign-theme-blackgold .campaign-statblock-rule,
+.campaign-theme-blackgold .campaign-statblock-section { border-color: #c9a84c; }
+.campaign-theme-blackgold .campaign-statblock-sub { color: #c0b594; }
+.campaign-theme-blackgold .campaign-statblock-desc { color: #e8dcc0; }
+
 /* Per-combatant d20 roll button */
 .campaign-init-d20-btn {
 	display: inline-flex; align-items: center; justify-content: center;

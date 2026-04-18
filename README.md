@@ -417,11 +417,85 @@ owner: "[[Elara]]"
 
 ---
 
+---
+
+### Secrets & Clues Pool
+
+**Commands:**
+- `Secrets: Add a secret or clue to the pool`
+- `Secrets: Reveal a secret to the players`
+- `Secrets: Open pool file`
+
+A Lazy DM pool of unrevealed plot threads for the current campaign. Stored as plain markdown at `Campaigns/<name>/Secrets.md` with GFM task-list syntax so you can also check boxes manually.
+
+**D&D Example:** During session prep you brainstorm 10 secrets the players could uncover. Run **"Add a secret or clue"** for each: *"The innkeeper is a werewolf"*, *"The map was forged by the BBEG"*. During play, when the party discovers one, run **"Reveal a secret"** — it moves from the Unrevealed section to Revealed, tagged with the current session. Any unrevealed secrets roll forward to the next session automatically.
+
+---
+
+### Statblock Rendering
+
+Inline D&D 5e-style monster statblocks via a `campaign-statblock` code block. DM-friendly YAML format, no external plugin dependency.
+
+**Usage:**
+
+~~~markdown
+```campaign-statblock
+name: Goblin
+size: Small
+type: humanoid (goblinoid)
+alignment: Neutral Evil
+ac: 15 (leather armor, shield)
+hp: 7 (2d6)
+speed: 30 ft.
+stats:
+  str: 8
+  dex: 14
+  con: 10
+  int: 10
+  wis: 8
+  cha: 8
+skills: Stealth +6
+senses: darkvision 60 ft., passive Perception 9
+languages: Common, Goblin
+cr: 1/4
+actions:
+  - name: Scimitar
+    text: "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6 + 2) slashing damage."
+  - name: Shortbow
+    text: "Ranged Weapon Attack: +4 to hit, range 80/320 ft., one target. Hit: 5 (1d6 + 2) piercing damage."
+```
+~~~
+
+Supports all 5e statblock fields: AC, HP, speed, stats, saves, skills, damage/condition immunities/resistances, senses, languages, CR, traits, actions, bonus actions, reactions, legendary actions. Missing fields just don't render.
+
+---
+
+### Name Generator
+
+When creating an NPC — via the command palette or `/add npc` — the prompt includes a **Generate name** button. Click it to fill the field with a random fantasy-flavored name across 9 races (human, elf, dwarf, halfling, dragonborn, tiefling, gnome, half-orc, orc). Click again to cycle through suggestions. The generator is built-in and doesn't depend on any network call.
+
+---
+
+### Campaign Timeline
+
+**Command:** `Open Campaign Timeline`
+
+A chronological `ItemView` that aggregates every `## Session log` bullet from every session note in the active campaign. Sessions group by number (then date); entries within each session appear in their original order.
+
+- **Filter box** at the top — type part of an entity name (e.g. `Goruk`) to show only lines that mention it.
+- **Click a session title** to jump to the session note.
+- Auto-refreshes when you switch campaigns or when the entity index changes.
+
+**D&D Example:** Halfway through a campaign you ask "wait, when did the party first meet Strahd?" Open the Timeline, type `Strahd` in the filter, scroll to the first match — it's right there with a session link.
+
+---
+
 ## Command Reference
 
 | Command | Description |
 |---|---|
 | Initialize Campaign Vault | Create all folders and templates for a new campaign |
+| Switch Active Campaign (default) | Pick the default campaign when no campaign file is open |
 | Create NPC / PC / Quest / etc. | Create a new entity from template |
 | Open Quest Board | View quests grouped by state |
 | Open Campaign Issues | View schema validation errors |
@@ -430,7 +504,10 @@ owner: "[[Elara]]"
 | Open NPC Relationship Graph | Visual NPC/faction graph |
 | Open PC Sheet | Character sheet viewer + DDB importer |
 | Open Campaign Map | Interactive map with fog of war |
+| Open Campaign Timeline | Chronological log of all session events |
+| Secrets: Add / Reveal / Open pool | Lazy DM secrets & clues pool |
 | Auto-link entities in current file | Convert entity names to wikilinks |
+| Fix frontmatter position (current file) | Manual repair if another plugin injected content |
 | Publish: Export static site | Generate player-safe HTML |
 | Publish: Export (include GM content) | Generate full HTML |
 | Publish: Export and git push | Generate + push to hosting |

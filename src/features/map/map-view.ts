@@ -272,7 +272,7 @@ export class MapView extends ItemView {
 		this.isPanning = false;
 	}
 
-	private onDblClick(e: MouseEvent): void {
+	private async onDblClick(e: MouseEvent): Promise<void> {
 		if (this.fogMode) return;
 		const { x, y } = this.toMapCoords(e);
 		const existingPin = this.pins.find(
@@ -286,7 +286,7 @@ export class MapView extends ItemView {
 			if (file) this.app.workspace.getLeaf(false).openFile(file);
 			return;
 		}
-		const rawLabel = prompt("Pin label (leave blank to cancel):");
+		const rawLabel = await this.plugin.promptText("Pin label");
 		if (rawLabel === null) return;
 		const label = rawLabel.replace(/[\x00-\x1f\x7f]/g, "").slice(0, 100);
 		this.pins.push({ x: Math.round(x), y: Math.round(y), target: "", label });

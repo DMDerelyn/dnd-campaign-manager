@@ -35,7 +35,13 @@ export function buildSlashCommands(): SlashCommand[] {
 			async run({ plugin, tail, replace }) {
 				let name = tail.trim();
 				if (!name) {
-					name = await plugin.promptText(`New ${kind} name`) ?? "";
+					const options = kind === "npc"
+						? {
+								suggestLabel: "Generate name",
+								suggest: () => plugin.generateNPCName(),
+							}
+						: undefined;
+					name = (await plugin.promptText(`New ${kind} name`, options)) ?? "";
 					if (!name) {
 						replace("");
 						return;
