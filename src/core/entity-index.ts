@@ -32,6 +32,7 @@ export class EntityIndex {
 	constructor(
 		private app: App,
 		private onDiagnosticsChange?: () => void,
+		private isExcluded: (path: string) => boolean = () => false,
 	) {}
 
 	/** Rebuild the entire index from the vault. Call once at startup. */
@@ -41,15 +42,24 @@ export class EntityIndex {
 		this.byAlias.clear();
 		this.diagnostics.clear();
 		const files = this.app.vault.getMarkdownFiles();
-		for (const file of files) this.indexFile(file, /*notify*/ false);
+		for (const file of files) {
+			if (this.isExcluded(file.path)) continue;
+			this.indexFile(file, /*notify*/ false);
+		}
 		this.notify();
 	}
 
 	/** Index or re-index a single file based on its current MetadataCache state. */
 	indexFile(file: TFile, notify = true): void {
+		const prev = this.byPath.get(file.path);
+		if (this.isExcluded(file.path)) {
+			if (prev) this.removeFromIndex(prev);
+			if (this.diagnostics.delete(file.path)) this.onDiagnosticsChange?.();
+			if (prev && notify) this.notify();
+			return;
+		}
 		const cache = this.app.metadataCache.getFileCache(file);
 		const fm = cache?.frontmatter;
-		const prev = this.byPath.get(file.path);
 		if (prev) this.removeFromIndex(prev);
 		this.diagnostics.delete(file.path);
 
