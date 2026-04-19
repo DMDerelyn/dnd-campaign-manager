@@ -1,6 +1,6 @@
 # D&D Campaign Manager
 
-Plan, run, and publish D&D 5e campaigns entirely inside Obsidian. One plugin replaces a stack of single-purpose tools: typed entity management, a session runner dashboard, an in-house initiative tracker, an interactive map with fog of war, a static site exporter, and more.
+Plan and run D&D 5e campaigns entirely inside Obsidian. One plugin replaces a stack of single-purpose tools: typed entity management, a session runner dashboard, an in-house initiative tracker, an interactive map with fog of war, and more.
 
 > **Device support:** Optimized for desktop and tablet use. Mobile (phone) is usable for quick additions and references — slash commands, secrets, quick notes, statblock reading, quest board, timeline — but canvas-based views (Campaign Map, NPC Relationship Graph) are not an ideal experience on small touch screens. Multi-panel layouts like the Session Runner also work best with a wider display.
 
@@ -11,7 +11,6 @@ Plan, run, and publish D&D 5e campaigns entirely inside Obsidian. One plugin rep
 1. **Install** — Copy `main.js`, `manifest.json`, and `styles.css` into your vault's `.obsidian/plugins/dnd-campaign-manager/` folder. Enable the plugin in Settings > Community Plugins.
 2. **Initialize your vault** — Open the command palette (`Ctrl/Cmd + P`) and run **"Campaign: Initialize Campaign Vault"**. Enter your campaign name (e.g., *Curse of Strahd*). This creates all the folders and templates you need.
 3. **Create your first entity** — Run **"Campaign: Create NPC"** from the command palette, or type `/add npc Goruk the Mighty` in any note.
-4. **Pick a theme** — Go to Settings > D&D Campaign Manager > Theme and choose **Player's Handbook** (parchment & red) or **Dungeon Master's Guide** (dark & gold).
 
 ### Required Companion Plugins
 
@@ -40,7 +39,6 @@ Campaign/
   Sessions/
   Factions/
   Items/
-  _site/          (for published exports)
 Templates/
   Campaign/
     npc.md
@@ -284,56 +282,14 @@ An interactive map view with fog of war and pin placement.
 
 ---
 
-### Static Site Export
-
-**Commands:**
-- `Campaign: Publish: Export static site` — Player-safe export (strips GM content)
-- `Campaign: Publish: Export static site (include GM content)` — Full export
-- `Campaign: Publish: Export and git push` — Export + auto-push to your hosting repo
-
-Generates a static HTML website from your campaign entities. Perfect for sharing world lore with players or publishing a campaign wiki.
-
-**What gets stripped in player-safe mode:**
-- Files with `visibility: gm` are excluded entirely
-- `%%gm-only%% ... %%/gm-only%%` fenced blocks are removed
-- `secrets` and `summary_gm` frontmatter fields are removed
-- Wikilinks become clickable HTML links between pages
-
-**Publishing workflow:**
-1. Configure in Settings > D&D Campaign Manager > Publishing: set your export folder and site title
-2. Run the export command — HTML files appear in `Campaign/_site/`
-3. (Optional) Set up the export folder as a git repo pointing at Cloudflare Pages, Netlify, or GitHub Pages. Then use "Export and git push" for one-click publishing.
-
-**D&D Example:** You want players to browse world lore between sessions. Export the site — they get pages for public locations, faction overviews, completed quests, and NPC descriptions (minus your secrets and GM notes). Host it on Netlify for free.
-
----
-
-### D&D Themes
-
-**Setting:** Settings > D&D Campaign Manager > Theme
-
-| Theme | Look |
-|---|---|
-| **Default** | Follows your Obsidian theme (light or dark) |
-| **Player's Handbook** | Aged parchment background, dark red heading accents, serif fonts (Palatino). Warm and classic. |
-| **Dungeon Master's Guide** | Dark navy background, gold heading accents, blood-red highlights. Mysterious and arcane. |
-
-Themes only affect plugin views (Initiative Tracker, Quest Board, Session Runner, PC Sheet, etc.). Your regular markdown notes keep your chosen Obsidian theme.
-
----
-
 ## Settings Reference
 
 | Setting | Default | Description |
 |---|---|---|
-| **Theme** | Default | Visual theme for plugin views |
 | **Entity folders** | `Campaign/PCs`, etc. | Where new entities of each kind are created |
 | **Strict validation** | Off | Show a notice when opening a file with schema errors |
 | **Auto-link on save** | Off | Automatically rewrite entity names as wikilinks on save |
-| **Export folder** | `Campaign/_site` | Where the static site is generated |
-| **Site title** | My Campaign | Title for the published site |
-| **Git remote** | origin | Git remote for auto-push |
-| **Git branch** | main | Git branch for auto-push |
+| **Excluded folders** | *(empty)* | Folders the plugin should ignore entirely — their contents won't appear in Campaign Issues or be indexed as entities |
 
 ---
 
@@ -510,9 +466,6 @@ A chronological `ItemView` that aggregates every `## Session log` bullet from ev
 | Secrets: Add / Reveal / Open pool | Lazy DM secrets & clues pool |
 | Auto-link entities in current file | Convert entity names to wikilinks |
 | Fix frontmatter position (current file) | Manual repair if another plugin injected content |
-| Publish: Export static site | Generate player-safe HTML |
-| Publish: Export (include GM content) | Generate full HTML |
-| Publish: Export and git push | Generate + push to hosting |
 
 ---
 
@@ -533,7 +486,7 @@ Every entity writes an envelope with a version stamp:
 A few things the plugin **does not** adopt on purpose:
 
 - **Flat relationship fields (`friends:`, `factions:`, etc.) remain canonical**, editable directly in Obsidian's Properties panel. When a central relationship service lands, it will merge with those fields rather than replace them — the offline, in-Obsidian experience stays first-class.
-- **Per-character visibility** is not modeled. Files are `gm`, `player`, or `both`. Per-player fog of knowledge is a future concern tied to the publishing pipeline, not a v0.1 field.
+- **Per-character visibility** is not modeled. Files are `gm`, `player`, or `both`. Per-player fog of knowledge is a future concern, not a v0.1 field.
 - **No codegen / shared npm package.** The Zod schemas here are hand-written and ~200 LoC total; pulling them through a generator for a single TypeScript consumer isn't worth the build complexity yet.
 
 ---

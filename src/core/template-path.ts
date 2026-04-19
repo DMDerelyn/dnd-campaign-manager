@@ -54,7 +54,7 @@ export function isTemplatePath(
  * True if `path` should be invisible to the plugin — either because it
  * sits inside a template folder (see `isTemplatePath`) or because the
  * user has configured its containing folder as an exclusion in settings.
- * This is the check to gate indexing and publishing on.
+ * This is the check to gate indexing on.
  */
 export function isPathExcluded(
 	path: string,

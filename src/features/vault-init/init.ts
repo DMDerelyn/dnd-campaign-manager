@@ -391,8 +391,6 @@ export async function initializeCampaignVault(
 		await ensureFolder(app, `${root}/${settings.folders[kind]}`);
 	}
 
-	await ensureFolder(app, `${root}/${settings.publishFolder}`);
-
 	await ensureFolder(app, "Templates/Campaign");
 	await ensureFolder(app, "Templates/Scripts");
 

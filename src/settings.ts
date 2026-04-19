@@ -7,10 +7,6 @@ export interface CampaignSettings {
 	campaignRoot: string;
 	enableAutolinkOnSave: boolean;
 	strictValidation: boolean;
-	publishFolder: string;
-	publishTitle: string;
-	gitRemote: string;
-	gitBranch: string;
 	excludedFolders: string[];
 }
 
@@ -27,10 +23,6 @@ export const DEFAULT_SETTINGS: CampaignSettings = {
 	campaignRoot: "Campaigns/My Campaign",
 	enableAutolinkOnSave: false,
 	strictValidation: false,
-	publishFolder: "_site",
-	publishTitle: "My Campaign",
-	gitRemote: "origin",
-	gitBranch: "main",
 	excludedFolders: [],
 };
 
@@ -115,7 +107,7 @@ export class CampaignSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("Excluded folders")
 			.setDesc(
-				"Folders the plugin should ignore entirely. Files inside these folders will not appear in Campaign Issues, will not be indexed as entities, and will not be published. One folder per line. Template folders are always excluded automatically, so you do not need to list them here.",
+				"Folders the plugin should ignore entirely. Files inside these folders will not appear in Campaign Issues and will not be indexed as entities. One folder per line. Template folders are always excluded automatically, so you do not need to list them here.",
 			)
 			.addTextArea((t) => {
 				t.setPlaceholder("Legacy\nImported/Old Vault\nArchive/2023");
@@ -143,42 +135,5 @@ export class CampaignSettingTab extends PluginSettingTab {
 				}),
 			);
 
-		new Setting(containerEl).setName("Publishing").setHeading();
-		new Setting(containerEl)
-			.setName("Export folder")
-			.setDesc("Folder within the vault where the static site is exported.")
-			.addText((t) =>
-				t.setValue(this.plugin.settings.publishFolder).onChange(async (v) => {
-					this.plugin.settings.publishFolder = v.trim();
-					await this.plugin.saveSettings();
-				}),
-			);
-		new Setting(containerEl)
-			.setName("Site title")
-			.setDesc("Title for the published campaign site.")
-			.addText((t) =>
-				t.setValue(this.plugin.settings.publishTitle).onChange(async (v) => {
-					this.plugin.settings.publishTitle = v.trim();
-					await this.plugin.saveSettings();
-				}),
-			);
-		new Setting(containerEl)
-			.setName("Git remote")
-			.setDesc("Git remote name for auto-push (e.g., origin).")
-			.addText((t) =>
-				t.setValue(this.plugin.settings.gitRemote).onChange(async (v) => {
-					this.plugin.settings.gitRemote = v.trim();
-					await this.plugin.saveSettings();
-				}),
-			);
-		new Setting(containerEl)
-			.setName("Git branch")
-			.setDesc("Branch to push to (e.g., main).")
-			.addText((t) =>
-				t.setValue(this.plugin.settings.gitBranch).onChange(async (v) => {
-					this.plugin.settings.gitBranch = v.trim();
-					await this.plugin.saveSettings();
-				}),
-			);
 	}
 }
