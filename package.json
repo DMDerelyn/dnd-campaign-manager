@@ -5,9 +5,7 @@
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
-    "build": "tsc --noEmit && node esbuild.config.mjs production",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "build": "tsc --noEmit && node esbuild.config.mjs production"
   },
   "keywords": ["obsidian", "ttrpg", "dnd", "5e"],
   "author": "DMDerelyn",
@@ -18,8 +16,7 @@
     "esbuild": "^0.25.0",
     "obsidian": "latest",
     "tslib": "^2.6.2",
-    "typescript": "^5.3.3",
-    "vitest": "^3.0.0"
+    "typescript": "^5.3.3"
   },
   "dependencies": {
     "zod": "^3.22.4"
