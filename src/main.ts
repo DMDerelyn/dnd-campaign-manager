@@ -30,7 +30,6 @@ import { autolink } from "./features/autolink/linker";
 import { TemplaterBridge } from "./integrations/templater-api";
 import { DataviewBridge } from "./integrations/dataview-api";
 import { EntityPickerModal } from "./ui/modals/entity-picker";
-import { applyTheme } from "./ui/themes";
 import { ulid } from "./core/ulid";
 import { validateFrontmatter, type EntityKind } from "./schemas";
 import {
@@ -85,7 +84,6 @@ export default class CampaignPlugin extends Plugin {
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
-		applyTheme(this.settings.theme);
 
 		this.templater = new TemplaterBridge(this.app);
 		this.dataview = new DataviewBridge(this.app);
@@ -151,7 +149,6 @@ export default class CampaignPlugin extends Plugin {
 	async onunload(): Promise<void> {
 		for (const id of this.normalizationTimers) window.clearTimeout(id);
 		this.normalizationTimers.clear();
-		applyTheme("default");
 	}
 
 	async loadSettings(): Promise<void> {
@@ -170,21 +167,25 @@ export default class CampaignPlugin extends Plugin {
 
 	/**
 	 * True if `path` lives inside a templates folder and should be skipped by
-	 * the entity index. Honors the folder configured by Templater and by
-	 * Obsidian's core Templates plugin, and always excludes the built-in
-	 * `Templates/` folder the vault initializer creates.
+	 * the entity index. Honors every folder Templater treats as a template
+	 * source (primary `templates_folder` plus any `folder_templates` parents)
+	 * and the folder configured by Obsidian's core Templates plugin. Always
+	 * excludes the built-in `Templates/` folder the vault initializer
+	 * creates. Comparison is case-insensitive and tolerant of leading or
+	 * trailing slashes, so a setting like `/templates/` still matches.
 	 */
 	isTemplatePath(path: string): boolean {
 		const folders = new Set<string>();
 		folders.add("Templates");
-		const tmpl = this.templater.getTemplatesFolder();
-		if (tmpl) folders.add(tmpl);
+		folders.add("templates");
+		for (const f of this.templater.getAllTemplateFolders()) folders.add(f);
 		const core = this.getCoreTemplatesFolder();
 		if (core) folders.add(core);
+		const normalizedPath = path.replace(/^\/+|\/+$/g, "").toLowerCase();
 		for (const folder of folders) {
-			const norm = folder.replace(/\/+$/, "");
+			const norm = folder.replace(/^\/+|\/+$/g, "").toLowerCase();
 			if (!norm) continue;
-			if (path === norm || path.startsWith(`${norm}/`)) return true;
+			if (normalizedPath === norm || normalizedPath.startsWith(`${norm}/`)) return true;
 		}
 		return false;
 	}

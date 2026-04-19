@@ -25,6 +25,33 @@ export class TemplaterBridge {
 		return trimmed.length > 0 ? trimmed : null;
 	}
 
+	/**
+	 * Every folder that Templater treats as a source of templates. This is a
+	 * superset of `getTemplatesFolder` — it also includes the parent folders
+	 * of each per-folder template rule, so any file living under them is
+	 * treated as a template by the entity index.
+	 */
+	getAllTemplateFolders(): string[] {
+		const plug = (this.app as unknown as AppWithPlugins).plugins?.plugins?.["templater-obsidian"];
+		const settings = plug?.settings;
+		const out: string[] = [];
+		if (typeof settings?.templates_folder === "string") {
+			const trimmed = settings.templates_folder.trim();
+			if (trimmed) out.push(trimmed);
+		}
+		const folderTemplates = settings?.folder_templates;
+		if (Array.isArray(folderTemplates)) {
+			for (const ft of folderTemplates) {
+				const tpl = ft?.template;
+				if (typeof tpl !== "string") continue;
+				const parent = tpl.includes("/") ? tpl.slice(0, tpl.lastIndexOf("/")) : "";
+				const trimmed = parent.trim();
+				if (trimmed) out.push(trimmed);
+			}
+		}
+		return out;
+	}
+
 	/** Create a file from one of our shipped templates. */
 	async createFromTemplate(
 		templateFile: TFile,
@@ -86,6 +113,7 @@ interface AppWithPlugins {
 			};
 			settings?: {
 				templates_folder?: string;
+				folder_templates?: Array<{ folder?: string; template?: string }>;
 			};
 		}>;
 	};
