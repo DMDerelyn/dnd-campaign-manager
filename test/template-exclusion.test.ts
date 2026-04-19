@@ -1,19 +1,19 @@
 import { describe, it, expect } from "vitest";
+import type { App } from "obsidian";
 import { TemplaterBridge } from "../src/integrations/templater-api";
-
-interface FakeApp {
-	plugins?: {
-		plugins?: Record<string, unknown>;
-	};
-	internalPlugins?: {
-		plugins?: Record<string, { instance?: { options?: { folder?: string } } }>;
-	};
-}
+import {
+	gatherTemplateFolders,
+	isTemplatePath,
+	pathIsInAnyFolder,
+} from "../src/core/template-path";
 
 function makeApp(opts: {
-	templater?: { templates_folder?: string; folder_templates?: Array<{ folder?: string; template?: string }> };
+	templater?: {
+		templates_folder?: string;
+		folder_templates?: Array<{ folder?: string; template?: string }>;
+	};
 	coreFolder?: string;
-}): FakeApp {
+}): App {
 	return {
 		plugins: opts.templater
 			? {
@@ -24,76 +24,121 @@ function makeApp(opts: {
 			: undefined,
 		internalPlugins: opts.coreFolder !== undefined
 			? {
-				plugins: { templates: { instance: { options: { folder: opts.coreFolder } } } },
+				plugins: {
+					templates: { instance: { options: { folder: opts.coreFolder } } },
+				},
 			}
 			: undefined,
-	};
+	} as unknown as App;
 }
 
-// Mirror of main.ts#isTemplatePath so the logic can be tested without
-// instantiating the full plugin (which requires Obsidian at runtime).
-function isTemplatePath(path: string, app: FakeApp): boolean {
-	const bridge = new TemplaterBridge(app as never);
-	const folders = new Set<string>();
-	folders.add("Templates");
-	folders.add("templates");
-	for (const f of bridge.getAllTemplateFolders()) folders.add(f);
-	const core = app.internalPlugins?.plugins?.templates?.instance?.options?.folder;
-	if (typeof core === "string" && core.trim()) folders.add(core.trim());
-	const normalizedPath = path.replace(/^\/+|\/+$/g, "").toLowerCase();
-	for (const folder of folders) {
-		const norm = folder.replace(/^\/+|\/+$/g, "").toLowerCase();
-		if (!norm) continue;
-		if (normalizedPath === norm || normalizedPath.startsWith(`${norm}/`)) return true;
-	}
-	return false;
+function check(path: string, opts: Parameters<typeof makeApp>[0]): boolean {
+	const app = makeApp(opts);
+	return isTemplatePath(path, app, new TemplaterBridge(app));
 }
+
+describe("pathIsInAnyFolder", () => {
+	it("matches an exact folder prefix", () => {
+		expect(pathIsInAnyFolder("Templates/npc.md", ["Templates"])).toBe(true);
+	});
+
+	it("ignores case differences on both sides", () => {
+		expect(pathIsInAnyFolder("MY templates/FOO.md", ["my TEMPLATES"])).toBe(true);
+	});
+
+	it("strips leading and trailing slashes from both sides", () => {
+		expect(pathIsInAnyFolder("/Templates/npc.md", ["/Templates/"])).toBe(true);
+	});
+
+	it("does not match partial folder-name prefixes", () => {
+		expect(pathIsInAnyFolder("TemplatesOther/foo.md", ["Templates"])).toBe(false);
+	});
+
+	it("matches when the path is the folder itself", () => {
+		expect(pathIsInAnyFolder("Templates", ["Templates"])).toBe(true);
+	});
+
+	it("skips blank folder entries", () => {
+		expect(pathIsInAnyFolder("NPCs/foo.md", ["", "   "])).toBe(false);
+	});
+});
+
+describe("gatherTemplateFolders", () => {
+	it("always seeds Templates/ and templates/", () => {
+		const app = makeApp({});
+		const folders = gatherTemplateFolders(app, new TemplaterBridge(app));
+		expect(folders).toContain("Templates");
+		expect(folders).toContain("templates");
+	});
+
+	it("includes Templater's templates_folder", () => {
+		const app = makeApp({ templater: { templates_folder: "Meta/Templates" } });
+		const folders = gatherTemplateFolders(app, new TemplaterBridge(app));
+		expect(folders).toContain("Meta/Templates");
+	});
+
+	it("includes the parent folder of each folder_templates rule", () => {
+		const app = makeApp({
+			templater: {
+				folder_templates: [{ folder: "NPCs", template: "Extra/Tpl/npc.md" }],
+			},
+		});
+		const folders = gatherTemplateFolders(app, new TemplaterBridge(app));
+		expect(folders).toContain("Extra/Tpl");
+	});
+
+	it("includes the core Templates plugin folder", () => {
+		const app = makeApp({ coreFolder: "Vault Templates" });
+		const folders = gatherTemplateFolders(app, new TemplaterBridge(app));
+		expect(folders).toContain("Vault Templates");
+	});
+});
 
 describe("isTemplatePath", () => {
 	it("excludes the built-in Templates/ folder", () => {
-		const app = makeApp({});
-		expect(isTemplatePath("Templates/Campaign/npc.md", app)).toBe(true);
+		expect(check("Templates/Campaign/npc.md", {})).toBe(true);
 	});
 
 	it("excludes a lowercase templates/ folder", () => {
-		const app = makeApp({});
-		expect(isTemplatePath("templates/npc.md", app)).toBe(true);
+		expect(check("templates/npc.md", {})).toBe(true);
 	});
 
 	it("excludes Templater's configured templates_folder", () => {
-		const app = makeApp({ templater: { templates_folder: "Meta/Templates" } });
-		expect(isTemplatePath("Meta/Templates/quest.md", app)).toBe(true);
+		expect(check("Meta/Templates/quest.md", {
+			templater: { templates_folder: "Meta/Templates" },
+		})).toBe(true);
 	});
 
 	it("excludes regardless of case differences in the configured folder", () => {
-		const app = makeApp({ templater: { templates_folder: "MY TEMPLATES" } });
-		expect(isTemplatePath("my templates/foo.md", app)).toBe(true);
+		expect(check("my templates/foo.md", {
+			templater: { templates_folder: "MY TEMPLATES" },
+		})).toBe(true);
 	});
 
 	it("tolerates leading and trailing slashes in the setting", () => {
-		const app = makeApp({ templater: { templates_folder: "/Templates/" } });
-		expect(isTemplatePath("Templates/npc.md", app)).toBe(true);
+		expect(check("Templates/npc.md", {
+			templater: { templates_folder: "/Templates/" },
+		})).toBe(true);
 	});
 
 	it("excludes folders referenced by Templater folder_templates rules", () => {
-		const app = makeApp({
+		expect(check("Extra/Tpl/npc.md", {
 			templater: {
 				templates_folder: "Main/Templates",
 				folder_templates: [
 					{ folder: "Campaigns/My Campaign/NPCs", template: "Extra/Tpl/npc.md" },
 				],
 			},
-		});
-		expect(isTemplatePath("Extra/Tpl/npc.md", app)).toBe(true);
+		})).toBe(true);
 	});
 
 	it("excludes files in the core Templates plugin folder", () => {
-		const app = makeApp({ coreFolder: "Vault Templates" });
-		expect(isTemplatePath("Vault Templates/session.md", app)).toBe(true);
+		expect(check("Vault Templates/session.md", { coreFolder: "Vault Templates" })).toBe(true);
 	});
 
 	it("does not exclude ordinary entity files", () => {
-		const app = makeApp({ templater: { templates_folder: "Templates" } });
-		expect(isTemplatePath("Campaigns/My Campaign/NPCs/Gandalf.md", app)).toBe(false);
+		expect(check("Campaigns/My Campaign/NPCs/Gandalf.md", {
+			templater: { templates_folder: "Templates" },
+		})).toBe(false);
 	});
 });

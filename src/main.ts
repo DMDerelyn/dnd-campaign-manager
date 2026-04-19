@@ -17,6 +17,7 @@ import {
 	type CampaignSettings,
 } from "./settings";
 import { EntityIndex, wireEntityIndex } from "./core/entity-index";
+import { isTemplatePath } from "./core/template-path";
 import { EntityResolver } from "./core/entity-resolver";
 import { EventBus, type CampaignEvents } from "./core/event-bus";
 import { DiagnosticsView, DIAGNOSTICS_VIEW_TYPE } from "./core/diagnostics-view";
@@ -165,43 +166,8 @@ export default class CampaignPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
-	/**
-	 * True if `path` lives inside a templates folder and should be skipped by
-	 * the entity index. Honors every folder Templater treats as a template
-	 * source (primary `templates_folder` plus any `folder_templates` parents)
-	 * and the folder configured by Obsidian's core Templates plugin. Always
-	 * excludes the built-in `Templates/` folder the vault initializer
-	 * creates. Comparison is case-insensitive and tolerant of leading or
-	 * trailing slashes, so a setting like `/templates/` still matches.
-	 */
 	isTemplatePath(path: string): boolean {
-		const folders = new Set<string>();
-		folders.add("Templates");
-		folders.add("templates");
-		for (const f of this.templater.getAllTemplateFolders()) folders.add(f);
-		const core = this.getCoreTemplatesFolder();
-		if (core) folders.add(core);
-		const normalizedPath = path.replace(/^\/+|\/+$/g, "").toLowerCase();
-		for (const folder of folders) {
-			const norm = folder.replace(/^\/+|\/+$/g, "").toLowerCase();
-			if (!norm) continue;
-			if (normalizedPath === norm || normalizedPath.startsWith(`${norm}/`)) return true;
-		}
-		return false;
-	}
-
-	private getCoreTemplatesFolder(): string | null {
-		const internal = (this.app as unknown as {
-			internalPlugins?: {
-				plugins?: Record<string, {
-					instance?: { options?: { folder?: string } };
-				}>;
-			};
-		}).internalPlugins;
-		const folder = internal?.plugins?.templates?.instance?.options?.folder;
-		if (typeof folder !== "string") return null;
-		const trimmed = folder.trim();
-		return trimmed.length > 0 ? trimmed : null;
+		return isTemplatePath(path, this.app, this.templater);
 	}
 
 	/**
