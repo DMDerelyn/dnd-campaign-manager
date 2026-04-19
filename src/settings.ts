@@ -11,6 +11,7 @@ export interface CampaignSettings {
 	publishTitle: string;
 	gitRemote: string;
 	gitBranch: string;
+	excludedFolders: string[];
 }
 
 export const DEFAULT_SETTINGS: CampaignSettings = {
@@ -30,6 +31,7 @@ export const DEFAULT_SETTINGS: CampaignSettings = {
 	publishTitle: "My Campaign",
 	gitRemote: "origin",
 	gitBranch: "main",
+	excludedFolders: [],
 };
 
 const KINDS: EntityKind[] = ["pc", "npc", "quest", "location", "session", "faction", "item"];
@@ -110,6 +112,25 @@ export class CampaignSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}),
 			);
+		new Setting(containerEl)
+			.setName("Excluded folders")
+			.setDesc(
+				"Folders the plugin should ignore entirely. Files inside these folders will not appear in Campaign Issues, will not be indexed as entities, and will not be published. One folder per line. Template folders are always excluded automatically, so you do not need to list them here.",
+			)
+			.addTextArea((t) => {
+				t.setPlaceholder("Legacy\nImported/Old Vault\nArchive/2023");
+				t.setValue(this.plugin.settings.excludedFolders.join("\n"));
+				t.inputEl.rows = 5;
+				t.inputEl.addClass("campaign-excluded-folders-input");
+				t.onChange(async (v) => {
+					this.plugin.settings.excludedFolders = v
+						.split(/\r?\n/)
+						.map((line) => line.trim())
+						.filter((line) => line.length > 0);
+					await this.plugin.saveSettings();
+					this.plugin.entityIndex.rebuildAll();
+				});
+			});
 
 		new Setting(containerEl).setName("Auto-link").setHeading();
 		new Setting(containerEl)

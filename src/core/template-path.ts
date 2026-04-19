@@ -50,6 +50,22 @@ export function isTemplatePath(
 	return pathIsInAnyFolder(path, gatherTemplateFolders(app, templater));
 }
 
+/**
+ * True if `path` should be invisible to the plugin — either because it
+ * sits inside a template folder (see `isTemplatePath`) or because the
+ * user has configured its containing folder as an exclusion in settings.
+ * This is the check to gate indexing and publishing on.
+ */
+export function isPathExcluded(
+	path: string,
+	app: App,
+	templater: TemplaterBridge,
+	userExcludedFolders: Iterable<string>,
+): boolean {
+	if (isTemplatePath(path, app, templater)) return true;
+	return pathIsInAnyFolder(path, userExcludedFolders);
+}
+
 function getCoreTemplatesFolder(app: App): string | null {
 	const internal = (app as unknown as {
 		internalPlugins?: {

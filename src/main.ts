@@ -17,7 +17,7 @@ import {
 	type CampaignSettings,
 } from "./settings";
 import { EntityIndex, wireEntityIndex } from "./core/entity-index";
-import { isTemplatePath } from "./core/template-path";
+import { isPathExcluded } from "./core/template-path";
 import { EntityResolver } from "./core/entity-resolver";
 import { EventBus, type CampaignEvents } from "./core/event-bus";
 import { DiagnosticsView, DIAGNOSTICS_VIEW_TYPE } from "./core/diagnostics-view";
@@ -92,7 +92,7 @@ export default class CampaignPlugin extends Plugin {
 		this.entityIndex = new EntityIndex(
 			this.app,
 			undefined,
-			(path) => this.isTemplatePath(path),
+			(path) => this.isPathExcluded(path),
 		);
 		this.resolver = new EntityResolver(this.app, this.entityIndex);
 
@@ -166,8 +166,13 @@ export default class CampaignPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
-	isTemplatePath(path: string): boolean {
-		return isTemplatePath(path, this.app, this.templater);
+	isPathExcluded(path: string): boolean {
+		return isPathExcluded(
+			path,
+			this.app,
+			this.templater,
+			this.settings.excludedFolders,
+		);
 	}
 
 	/**
@@ -360,7 +365,7 @@ export default class CampaignPlugin extends Plugin {
 					outputPath: this.resolvePath(this.settings.publishFolder),
 					title: this.settings.publishTitle,
 					includeGM: false,
-					isExcluded: (p) => this.isTemplatePath(p),
+					isExcluded: (p) => this.isPathExcluded(p),
 				});
 				new Notice(
 					`Exported ${result.filesExported} page(s), skipped ${result.filesSkipped} GM-only.`,
@@ -375,7 +380,7 @@ export default class CampaignPlugin extends Plugin {
 					outputPath: this.resolvePath(this.settings.publishFolder),
 					title: this.settings.publishTitle,
 					includeGM: true,
-					isExcluded: (p) => this.isTemplatePath(p),
+					isExcluded: (p) => this.isPathExcluded(p),
 				});
 				new Notice(`Exported ${result.filesExported} page(s) (GM content included).`);
 			},
@@ -391,7 +396,7 @@ export default class CampaignPlugin extends Plugin {
 							outputPath: this.resolvePath(this.settings.publishFolder),
 							title: this.settings.publishTitle,
 							includeGM: false,
-							isExcluded: (p) => this.isTemplatePath(p),
+							isExcluded: (p) => this.isPathExcluded(p),
 						});
 						const out = await gitPublish(this.app, {
 							repoPath: this.resolvePath(this.settings.publishFolder),
