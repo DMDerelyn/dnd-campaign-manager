@@ -49,17 +49,14 @@ export class CampaignSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		containerEl.createEl("h2", { text: "D&D Campaign Manager settings" });
-
 		const deviceNote = containerEl.createDiv({ cls: "campaign-dep-status" });
 		deviceNote.createEl("p", {
 			text: "Optimized for desktop and tablet. Mobile is usable for quick additions and references (slash commands, secrets, quick notes, statblocks, quest board, timeline), but canvas views (Campaign Map, NPC Relationship Graph) and multi-panel layouts are not ideal on small touch screens.",
 			cls: "campaign-dep-note",
 		});
 
-		containerEl.createEl("h3", { text: "Theme" });
 		new Setting(containerEl)
-			.setName("D&D Theme")
+			.setName("D&D theme")
 			.setDesc("Visual theme for plugin views (Initiative Tracker, Quest Board, Session Runner, etc.). Does not affect your regular notes.")
 			.addDropdown((d) => {
 				for (const [id, label] of Object.entries(THEME_LABELS)) {
@@ -77,7 +74,7 @@ export class CampaignSettingTab extends PluginSettingTab {
 		const tmpl = this.plugin.templater.isAvailable();
 		const dv = this.plugin.dataview.isAvailable();
 		depStatus.createEl("p", {
-			text: `Templater (optional): ${tmpl ? "detected" : "not installed"} · Dataview (optional): ${dv ? "detected" : "not installed"}`,
+			text: `Templater (optional): ${tmpl ? "detected" : "not installed"} \u00B7 Dataview (optional): ${dv ? "detected" : "not installed"}`,
 			cls: dv ? "campaign-ok" : "campaign-warn",
 		});
 		depStatus.createEl("p", {
@@ -85,7 +82,7 @@ export class CampaignSettingTab extends PluginSettingTab {
 			cls: "campaign-dep-note",
 		});
 
-		containerEl.createEl("h3", { text: "Campaign folder" });
+		new Setting(containerEl).setName("Campaign folder").setHeading();
 		const active = this.plugin.getActiveCampaignRoot();
 		const activeNote = containerEl.createDiv({ cls: "campaign-dep-note" });
 		activeNote.createEl("p", {
@@ -94,7 +91,7 @@ export class CampaignSettingTab extends PluginSettingTab {
 		});
 		new Setting(containerEl)
 			.setName("Default campaign root")
-			.setDesc("Used when no campaign file is currently open. New entities go here unless you're editing a file inside another campaign. Use 'Switch Active Campaign' command to change.")
+			.setDesc("Used when no campaign file is currently open. New entities go here unless you're editing a file inside another campaign. Use 'Switch active campaign' to change.")
 			.addText((t) =>
 				t.setValue(this.plugin.settings.campaignRoot).onChange(async (v) => {
 					this.plugin.settings.campaignRoot = v.trim();
@@ -102,8 +99,11 @@ export class CampaignSettingTab extends PluginSettingTab {
 				}),
 			);
 
-		containerEl.createEl("h3", { text: "Entity subfolders" });
-		containerEl.createEl("p", { text: `These are relative to ${this.plugin.settings.campaignRoot}/`, cls: "setting-item-description" });
+		new Setting(containerEl).setName("Entity subfolders").setHeading();
+		containerEl.createEl("p", {
+			text: `Relative to ${this.plugin.settings.campaignRoot}/`,
+			cls: "setting-item-description",
+		});
 		for (const kind of KINDS) {
 			new Setting(containerEl)
 				.setName(kind.toUpperCase())
@@ -118,7 +118,7 @@ export class CampaignSettingTab extends PluginSettingTab {
 				);
 		}
 
-		containerEl.createEl("h3", { text: "Validation" });
+		new Setting(containerEl).setName("Validation").setHeading();
 		new Setting(containerEl)
 			.setName("Strict validation")
 			.setDesc("Show a notice when opening a file with schema errors.")
@@ -129,10 +129,10 @@ export class CampaignSettingTab extends PluginSettingTab {
 				}),
 			);
 
-		containerEl.createEl("h3", { text: "Auto-link" });
+		new Setting(containerEl).setName("Auto-link").setHeading();
 		new Setting(containerEl)
 			.setName("Auto-link on save")
-			.setDesc("Rewrite known entity names as wikilinks each time a file is saved. Off by default — use the command instead.")
+			.setDesc("Rewrite known entity names as wikilinks each time a file is saved. Off by default \u2014 use the command instead.")
 			.addToggle((t) =>
 				t.setValue(this.plugin.settings.enableAutolinkOnSave).onChange(async (v) => {
 					this.plugin.settings.enableAutolinkOnSave = v;
@@ -140,7 +140,7 @@ export class CampaignSettingTab extends PluginSettingTab {
 				}),
 			);
 
-		containerEl.createEl("h3", { text: "Publishing" });
+		new Setting(containerEl).setName("Publishing").setHeading();
 		new Setting(containerEl)
 			.setName("Export folder")
 			.setDesc("Folder within the vault where the static site is exported.")

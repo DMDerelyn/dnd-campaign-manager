@@ -43,7 +43,7 @@ export class MapView extends ItemView {
 		return MAP_VIEW_TYPE;
 	}
 	getDisplayText(): string {
-		return this.location ? `Map: ${this.location.name}` : "Campaign Map";
+		return this.location ? `Map: ${this.location.name}` : "Campaign map";
 	}
 	getIcon(): string {
 		return "map";

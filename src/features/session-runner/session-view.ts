@@ -20,7 +20,7 @@ export class SessionRunnerView extends ItemView {
 		return SESSION_RUNNER_VIEW_TYPE;
 	}
 	getDisplayText(): string {
-		return "Session Runner";
+		return "Session runner";
 	}
 	getIcon(): string {
 		return "play-circle";
@@ -277,30 +277,26 @@ export class SessionRunnerView extends ItemView {
 	 */
 	private async appendToSessionLog(line: string): Promise<void> {
 		if (!this.sessionFile) return;
-		const content = await this.app.vault.read(this.sessionFile);
-		const headerRegex = /^## Session log\b/im;
-		const headerMatch = content.match(headerRegex);
+		await this.app.vault.process(this.sessionFile, (content) => {
+			const headerRegex = /^## Session log\b/im;
+			const headerMatch = content.match(headerRegex);
 
-		if (!headerMatch || headerMatch.index === undefined) {
-			const suffix = content.endsWith("\n") ? "" : "\n";
-			await this.app.vault.append(
-				this.sessionFile,
-				`${suffix}\n## Session log\n${line}\n`,
-			);
-			return;
-		}
+			if (!headerMatch || headerMatch.index === undefined) {
+				const suffix = content.endsWith("\n") ? "" : "\n";
+				return `${content}${suffix}\n## Session log\n${line}\n`;
+			}
 
-		const sectionStart = headerMatch.index + headerMatch[0].length;
-		const rest = content.slice(sectionStart);
-		const boundary = rest.match(/\n(?:#{1,2} |%%gm-only%%)/);
-		const insertAt = boundary && boundary.index !== undefined
-			? sectionStart + boundary.index
-			: content.length;
+			const sectionStart = headerMatch.index + headerMatch[0].length;
+			const rest = content.slice(sectionStart);
+			const boundary = rest.match(/\n(?:#{1,2} |%%gm-only%%)/);
+			const insertAt = boundary && boundary.index !== undefined
+				? sectionStart + boundary.index
+				: content.length;
 
-		const before = content.slice(0, insertAt).replace(/\n+$/, "");
-		const after = content.slice(insertAt);
-		const updated = `${before}\n${line}\n${after}`;
-		await this.app.vault.modify(this.sessionFile, updated);
+			const before = content.slice(0, insertAt).replace(/\n+$/, "");
+			const after = content.slice(insertAt);
+			return `${before}\n${line}\n${after}`;
+		});
 	}
 
 	private renderEntityLink(parent: HTMLElement, wikilink: string): void {

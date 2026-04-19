@@ -81,6 +81,7 @@ export default class CampaignPlugin extends Plugin {
 	eventBus = new EventBus<CampaignEvents>();
 	templater!: TemplaterBridge;
 	dataview!: DataviewBridge;
+	private normalizationTimers = new Set<number>();
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
@@ -89,7 +90,11 @@ export default class CampaignPlugin extends Plugin {
 		this.templater = new TemplaterBridge(this.app);
 		this.dataview = new DataviewBridge(this.app);
 
-		this.entityIndex = new EntityIndex(this.app);
+		this.entityIndex = new EntityIndex(
+			this.app,
+			undefined,
+			(path) => this.isTemplatePath(path),
+		);
 		this.resolver = new EntityResolver(this.app, this.entityIndex);
 
 		this.registerView(
@@ -131,9 +136,9 @@ export default class CampaignPlugin extends Plugin {
 
 		this.addSettingTab(new CampaignSettingTab(this.app, this));
 
-		this.addRibbonIcon("scroll", "Open Quest Board", () => this.activateQuestBoard());
-		this.addRibbonIcon("swords", "Initiative Tracker", () => this.activateView(INITIATIVE_VIEW_TYPE));
-		this.addRibbonIcon("play-circle", "Start Session", () => enterSessionLayout(this));
+		this.addRibbonIcon("scroll", "Open quest board", () => this.activateQuestBoard());
+		this.addRibbonIcon("swords", "Open initiative tracker", () => this.activateView(INITIATIVE_VIEW_TYPE));
+		this.addRibbonIcon("play-circle", "Start session", () => enterSessionLayout(this));
 
 		this.registerCommands();
 		this.registerVaultListeners();
@@ -144,6 +149,8 @@ export default class CampaignPlugin extends Plugin {
 	}
 
 	async onunload(): Promise<void> {
+		for (const id of this.normalizationTimers) window.clearTimeout(id);
+		this.normalizationTimers.clear();
 		applyTheme("default");
 	}
 
@@ -159,6 +166,41 @@ export default class CampaignPlugin extends Plugin {
 
 	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
+	}
+
+	/**
+	 * True if `path` lives inside a templates folder and should be skipped by
+	 * the entity index. Honors the folder configured by Templater and by
+	 * Obsidian's core Templates plugin, and always excludes the built-in
+	 * `Templates/` folder the vault initializer creates.
+	 */
+	isTemplatePath(path: string): boolean {
+		const folders = new Set<string>();
+		folders.add("Templates");
+		const tmpl = this.templater.getTemplatesFolder();
+		if (tmpl) folders.add(tmpl);
+		const core = this.getCoreTemplatesFolder();
+		if (core) folders.add(core);
+		for (const folder of folders) {
+			const norm = folder.replace(/\/+$/, "");
+			if (!norm) continue;
+			if (path === norm || path.startsWith(`${norm}/`)) return true;
+		}
+		return false;
+	}
+
+	private getCoreTemplatesFolder(): string | null {
+		const internal = (this.app as unknown as {
+			internalPlugins?: {
+				plugins?: Record<string, {
+					instance?: { options?: { folder?: string } };
+				}>;
+			};
+		}).internalPlugins;
+		const folder = internal?.plugins?.templates?.instance?.options?.folder;
+		if (typeof folder !== "string") return null;
+		const trimmed = folder.trim();
+		return trimmed.length > 0 ? trimmed : null;
 	}
 
 	/**
@@ -238,22 +280,23 @@ export default class CampaignPlugin extends Plugin {
 	scheduleFrontmatterNormalization(file: TFile): void {
 		const intervals = [0, 250, 700, 1500, 3000];
 		for (const delay of intervals) {
-			setTimeout(() => {
+			const id = window.setTimeout(() => {
+				this.normalizationTimers.delete(id);
 				this.normalizeEntityFrontmatter(file).catch((err) =>
 					console.warn("normalizeEntityFrontmatter:", err),
 				);
 			}, delay);
+			this.normalizationTimers.add(id);
 		}
 	}
 
 	async normalizeEntityFrontmatter(file: TFile): Promise<void> {
-		const actual = await this.app.vault.read(file);
-		if (actual.startsWith("---")) return;
-		const match = actual.match(/^---\s*$/m);
-		if (!match || match.index === undefined || match.index === 0) return;
-		const normalized = actual.slice(match.index);
-		if (normalized === actual) return;
-		await this.app.vault.modify(file, normalized);
+		await this.app.vault.process(file, (actual) => {
+			if (actual.startsWith("---")) return actual;
+			const match = actual.match(/^---\s*$/m);
+			if (!match || match.index === undefined || match.index === 0) return actual;
+			return actual.slice(match.index);
+		});
 	}
 
 
@@ -276,17 +319,17 @@ export default class CampaignPlugin extends Plugin {
 	private registerCommands(): void {
 		this.addCommand({
 			id: "open-quest-board",
-			name: "Open Quest Board",
+			name: "Open quest board",
 			callback: () => this.activateQuestBoard(),
 		});
 		this.addCommand({
 			id: "open-diagnostics",
-			name: "Open Campaign Issues",
+			name: "Open campaign issues",
 			callback: () => this.activateDiagnostics(),
 		});
 		this.addCommand({
 			id: "init-campaign-vault",
-			name: "Initialize Campaign Vault",
+			name: "Initialize campaign vault",
 			callback: async () => {
 				const name = await this.promptText("Campaign name (e.g., Curse of Strahd)");
 				if (!name) return;
@@ -298,11 +341,11 @@ export default class CampaignPlugin extends Plugin {
 		});
 		this.addCommand({
 			id: "switch-active-campaign",
-			name: "Switch Active Campaign (default)",
+			name: "Switch active campaign (default)",
 			callback: async () => {
 				const campaigns = this.listCampaigns();
 				if (campaigns.length === 0) {
-					new Notice("No campaigns found. Run 'Initialize Campaign Vault' first.");
+					new Notice("No campaigns found. Run 'Initialize campaign vault' first.");
 					return;
 				}
 				const picked = await this.pickFromList("Pick default campaign", campaigns);
@@ -314,32 +357,32 @@ export default class CampaignPlugin extends Plugin {
 		});
 		this.addCommand({
 			id: "open-initiative-tracker",
-			name: "Open Initiative Tracker",
+			name: "Open initiative tracker",
 			callback: () => this.activateView(INITIATIVE_VIEW_TYPE),
 		});
 		this.addCommand({
 			id: "start-session",
-			name: "Start Session (layout)",
+			name: "Start session (layout)",
 			callback: () => enterSessionLayout(this),
 		});
 		this.addCommand({
 			id: "open-npc-graph",
-			name: "Open NPC Relationship Graph",
+			name: "Open NPC relationship graph",
 			callback: () => this.activateView(NPC_GRAPH_VIEW_TYPE),
 		});
 		this.addCommand({
 			id: "open-pc-sheet",
-			name: "Open PC Sheet",
+			name: "Open PC sheet",
 			callback: () => this.activateView(PC_SHEET_VIEW_TYPE),
 		});
 		this.addCommand({
 			id: "open-map",
-			name: "Open Campaign Map",
+			name: "Open campaign map",
 			callback: () => this.activateView(MAP_VIEW_TYPE),
 		});
 		this.addCommand({
 			id: "open-timeline",
-			name: "Open Campaign Timeline",
+			name: "Open campaign timeline",
 			callback: () => this.activateView(TIMELINE_VIEW_TYPE),
 		});
 		this.addCommand({
@@ -350,6 +393,7 @@ export default class CampaignPlugin extends Plugin {
 					outputPath: this.resolvePath(this.settings.publishFolder),
 					title: this.settings.publishTitle,
 					includeGM: false,
+					isExcluded: (p) => this.isTemplatePath(p),
 				});
 				new Notice(
 					`Exported ${result.filesExported} page(s), skipped ${result.filesSkipped} GM-only.`,
@@ -364,6 +408,7 @@ export default class CampaignPlugin extends Plugin {
 					outputPath: this.resolvePath(this.settings.publishFolder),
 					title: this.settings.publishTitle,
 					includeGM: true,
+					isExcluded: (p) => this.isTemplatePath(p),
 				});
 				new Notice(`Exported ${result.filesExported} page(s) (GM content included).`);
 			},
@@ -379,6 +424,7 @@ export default class CampaignPlugin extends Plugin {
 							outputPath: this.resolvePath(this.settings.publishFolder),
 							title: this.settings.publishTitle,
 							includeGM: false,
+							isExcluded: (p) => this.isTemplatePath(p),
 						});
 						const out = await gitPublish(this.app, {
 							repoPath: this.resolvePath(this.settings.publishFolder),

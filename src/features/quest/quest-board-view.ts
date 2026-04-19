@@ -26,7 +26,7 @@ export class QuestBoardView extends ItemView {
 		return QUEST_BOARD_VIEW_TYPE;
 	}
 	getDisplayText(): string {
-		return "Quest Board";
+		return "Quest board";
 	}
 	getIcon(): string {
 		return "scroll";
@@ -48,7 +48,7 @@ export class QuestBoardView extends ItemView {
 		contentEl.addClass("campaign-quest-board");
 
 		const quests = this.index.byKind("quest");
-		contentEl.createEl("h3", { text: `Quest Board (${quests.length})` });
+		contentEl.createEl("h3", { text: `Quest board (${quests.length})` });
 
 		const grouped = groupByState(quests);
 

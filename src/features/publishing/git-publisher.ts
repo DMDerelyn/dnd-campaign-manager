@@ -1,4 +1,4 @@
-import type { App } from "obsidian";
+import { type App, FileSystemAdapter } from "obsidian";
 
 export interface GitPublishConfig {
 	repoPath: string;
@@ -11,6 +11,11 @@ export async function gitPublish(
 	app: App,
 	config: GitPublishConfig,
 ): Promise<string> {
+	const adapter = app.vault.adapter;
+	if (!(adapter instanceof FileSystemAdapter)) {
+		throw new Error("Git publish requires Obsidian desktop. Not available on mobile.");
+	}
+
 	let execFile: typeof import("child_process").execFile;
 	try {
 		execFile = require("child_process").execFile;
@@ -18,7 +23,7 @@ export async function gitPublish(
 		throw new Error("Git publish requires Obsidian desktop. Not available on mobile.");
 	}
 
-	const basePath = (app.vault.adapter as { basePath?: string }).basePath;
+	const basePath = adapter.getBasePath();
 	if (!basePath) throw new Error("Could not determine vault base path.");
 
 	const cwd = `${basePath}/${config.repoPath}`;

@@ -17,7 +17,7 @@ export class DiagnosticsView extends ItemView {
 		return DIAGNOSTICS_VIEW_TYPE;
 	}
 	getDisplayText(): string {
-		return "Campaign Issues";
+		return "Campaign issues";
 	}
 	getIcon(): string {
 		return "alert-triangle";
@@ -40,7 +40,7 @@ export class DiagnosticsView extends ItemView {
 
 		const header = contentEl.createEl("div", { cls: "campaign-diag-header" });
 		const diags = this.index.allDiagnostics();
-		header.createEl("h3", { text: `Campaign Issues (${diags.length})` });
+		header.createEl("h3", { text: `Campaign issues (${diags.length})` });
 
 		if (diags.length === 0) {
 			contentEl.createEl("p", {

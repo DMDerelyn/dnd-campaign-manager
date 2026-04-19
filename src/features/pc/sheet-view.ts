@@ -19,7 +19,7 @@ export class PCSheetView extends ItemView {
 		return PC_SHEET_VIEW_TYPE;
 	}
 	getDisplayText(): string {
-		return this.entity ? `PC: ${this.entity.name}` : "PC Sheet";
+		return this.entity ? `PC: ${this.entity.name}` : "PC sheet";
 	}
 	getIcon(): string {
 		return "user";
@@ -86,12 +86,15 @@ export class PCSheetView extends ItemView {
 		if (fm.background) meta.push(String(fm.background));
 		section.createEl("p", { text: meta.join(" | "), cls: "campaign-pc-meta" });
 
-		if (fm.dndbeyond_url && typeof fm.dndbeyond_url === "string") {
+		if (typeof fm.dndbeyond_url === "string" && /^https?:\/\//i.test(fm.dndbeyond_url)) {
+			const url = fm.dndbeyond_url;
 			const link = section.createEl("a", { text: "View on D&D Beyond", cls: "campaign-sr-entity-link" });
-			link.setAttribute("href", fm.dndbeyond_url);
+			link.setAttribute("href", url);
+			link.setAttribute("target", "_blank");
+			link.setAttribute("rel", "noopener noreferrer");
 			link.addEventListener("click", (e) => {
 				e.preventDefault();
-				window.open(fm.dndbeyond_url as string);
+				window.open(url, "_blank", "noopener,noreferrer");
 			});
 		}
 	}
@@ -118,11 +121,12 @@ export class PCSheetView extends ItemView {
 		const table = section.createEl("table", { cls: "campaign-sr-info-table" });
 
 		const hp = fm.hp as { current?: number; max?: number; temp?: number } | undefined;
+		const initBonus = typeof fm.initiative_bonus === "number" ? fm.initiative_bonus : 0;
 		const fields: [string, string][] = [
-			["HP", hp ? `${hp.current ?? 0} / ${hp.max ?? 0}${(hp.temp ?? 0) > 0 ? ` (+${hp.temp} temp)` : ""}` : "—"],
-			["AC", String(fm.ac ?? "—")],
+			["HP", hp ? `${hp.current ?? 0} / ${hp.max ?? 0}${(hp.temp ?? 0) > 0 ? ` (+${hp.temp} temp)` : ""}` : "\u2014"],
+			["AC", String(fm.ac ?? "\u2014")],
 			["Speed", `${fm.speed ?? 30} ft`],
-			["Initiative", `${fm.initiative_bonus ?? 0 >= 0 ? "+" : ""}${fm.initiative_bonus ?? 0}`],
+			["Initiative", `${initBonus >= 0 ? "+" : ""}${initBonus}`],
 		];
 		for (const [label, value] of fields) {
 			const tr = table.createEl("tr");

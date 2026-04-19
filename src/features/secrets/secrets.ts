@@ -45,20 +45,20 @@ export async function addSecret(
 	campaignRoot: string,
 	text: string,
 ): Promise<void> {
-	const file = await getOrCreateSecretsFile(app, campaignRoot);
-	const content = await app.vault.read(file);
 	const sanitized = text.replace(/\s+/g, " ").trim();
 	if (!sanitized) throw new Error("Secret text is empty.");
+	const file = await getOrCreateSecretsFile(app, campaignRoot);
 	const line = `- [ ] ${sanitized}`;
 	const header = "## Unrevealed";
-	const idx = content.indexOf(header);
-	if (idx === -1) {
-		await app.vault.append(file, `\n\n${header}\n${line}\n`);
-		return;
-	}
-	const insertAt = idx + header.length;
-	const updated = content.slice(0, insertAt) + `\n${line}` + content.slice(insertAt);
-	await app.vault.modify(file, updated);
+	await app.vault.process(file, (content) => {
+		const idx = content.indexOf(header);
+		if (idx === -1) {
+			const suffix = content.endsWith("\n") ? "" : "\n";
+			return `${content}${suffix}\n${header}\n${line}\n`;
+		}
+		const insertAt = idx + header.length;
+		return content.slice(0, insertAt) + `\n${line}` + content.slice(insertAt);
+	});
 }
 
 /**
@@ -73,24 +73,26 @@ export async function revealSecret(
 	sessionRef: string,
 ): Promise<void> {
 	const file = await getOrCreateSecretsFile(app, campaignRoot);
-	const content = await app.vault.read(file);
-	const lines = content.split("\n");
-
-	const targetIdx = lines.findIndex((l) => {
-		const m = l.match(/^\s*-\s*\[\s\]\s*(.+?)\s*$/);
-		return m !== null && m[1] === text;
+	let missing = false;
+	await app.vault.process(file, (content) => {
+		const lines = content.split("\n");
+		const targetIdx = lines.findIndex((l) => {
+			const m = l.match(/^\s*-\s*\[\s\]\s*(.+?)\s*$/);
+			return m !== null && m[1] === text;
+		});
+		if (targetIdx === -1) {
+			missing = true;
+			return content;
+		}
+		lines.splice(targetIdx, 1);
+		const revealedHeader = lines.findIndex((l) => l.match(/^## Revealed\b/i));
+		const newLine = `- [x] ${text} \u2014 ${sessionRef}`;
+		if (revealedHeader === -1) {
+			lines.push("", "## Revealed", newLine);
+		} else {
+			lines.splice(revealedHeader + 1, 0, newLine);
+		}
+		return lines.join("\n");
 	});
-	if (targetIdx === -1) throw new Error("Could not find that secret as unrevealed.");
-
-	lines.splice(targetIdx, 1);
-
-	const revealedHeader = lines.findIndex((l) => l.match(/^## Revealed\b/i));
-	const newLine = `- [x] ${text} \u2014 ${sessionRef}`;
-	if (revealedHeader === -1) {
-		lines.push("", "## Revealed", newLine);
-	} else {
-		lines.splice(revealedHeader + 1, 0, newLine);
-	}
-
-	await app.vault.modify(file, lines.join("\n"));
+	if (missing) throw new Error("Could not find that secret as unrevealed.");
 }

@@ -7,6 +7,7 @@ export interface ExportOptions {
 	outputPath: string;
 	title: string;
 	includeGM: boolean;
+	isExcluded?: (path: string) => boolean;
 }
 
 export interface ExportResult {
@@ -19,7 +20,7 @@ export async function exportStaticSite(
 	index: EntityIndex,
 	options: ExportOptions,
 ): Promise<ExportResult> {
-	const { outputPath, title, includeGM } = options;
+	const { outputPath, title, includeGM, isExcluded } = options;
 	await ensureDir(app, outputPath);
 
 	const allFiles = app.vault.getMarkdownFiles();
@@ -27,6 +28,7 @@ export async function exportStaticSite(
 	let skipped = 0;
 
 	for (const file of allFiles) {
+		if (isExcluded?.(file.path)) continue;
 		const cache = app.metadataCache.getFileCache(file);
 		const fm = cache?.frontmatter;
 		if (!fm || typeof fm.kind !== "string") continue;

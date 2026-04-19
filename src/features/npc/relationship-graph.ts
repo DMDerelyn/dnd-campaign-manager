@@ -51,7 +51,7 @@ export class NPCGraphView extends ItemView {
 		return NPC_GRAPH_VIEW_TYPE;
 	}
 	getDisplayText(): string {
-		return "NPC Relationships";
+		return "NPC relationships";
 	}
 	getIcon(): string {
 		return "network";

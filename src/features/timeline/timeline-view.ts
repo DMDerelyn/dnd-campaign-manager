@@ -18,6 +18,8 @@ export class TimelineView extends ItemView {
 	private filter = "";
 	private buckets: SessionBucket[] = [];
 	private bucketsCampaign = "";
+	private rebuildDebounce: number | null = null;
+	private cachedBuckets = new Map<string, { mtime: number; entries: TimelineEntry[] }>();
 
 	constructor(
 		leaf: WorkspaceLeaf,
@@ -30,7 +32,7 @@ export class TimelineView extends ItemView {
 		return TIMELINE_VIEW_TYPE;
 	}
 	getDisplayText(): string {
-		return "Campaign Timeline";
+		return "Campaign timeline";
 	}
 	getIcon(): string {
 		return "history";
@@ -38,14 +40,18 @@ export class TimelineView extends ItemView {
 
 	async onOpen(): Promise<void> {
 		await this.rebuildAndRender();
-		this.detachIndex = this.plugin.entityIndex.onChange(() => {
-			this.rebuildAndRender().catch((err) => console.warn("Timeline render:", err));
-		});
-		const ref = this.plugin.app.workspace.on("active-leaf-change", () => {
-			this.rebuildAndRender().catch((err) => console.warn("Timeline render:", err));
-		});
+		this.detachIndex = this.plugin.entityIndex.onChange(() => this.scheduleRebuild());
+		const ref = this.plugin.app.workspace.on("active-leaf-change", () => this.scheduleRebuild());
 		this.plugin.registerEvent(ref);
 		this.detachLeaf = () => this.plugin.app.workspace.offref(ref);
+	}
+
+	private scheduleRebuild(): void {
+		if (this.rebuildDebounce !== null) window.clearTimeout(this.rebuildDebounce);
+		this.rebuildDebounce = window.setTimeout(() => {
+			this.rebuildDebounce = null;
+			this.rebuildAndRender().catch((err) => console.warn("Timeline render:", err));
+		}, 150);
 	}
 
 	/** Refetch + cache session log buckets, then re-render. */
@@ -58,12 +64,21 @@ export class TimelineView extends ItemView {
 		const activeRoot = this.plugin.getActiveCampaignRoot();
 		this.bucketsCampaign = activeRoot;
 		const sessions = this.plugin.byKindInActiveCampaign("session");
+		const seen = new Set<string>();
 		const out: SessionBucket[] = [];
 		for (const session of sessions) {
 			const file = this.plugin.app.vault.getAbstractFileByPath(session.path);
 			if (!(file instanceof TFile)) continue;
-			const content = await this.plugin.app.vault.read(file);
-			const entries = extractSessionLog(content);
+			seen.add(file.path);
+			const prior = this.cachedBuckets.get(file.path);
+			let entries: TimelineEntry[];
+			if (prior && prior.mtime === file.stat.mtime) {
+				entries = prior.entries;
+			} else {
+				const content = await this.plugin.app.vault.cachedRead(file);
+				entries = extractSessionLog(content);
+				this.cachedBuckets.set(file.path, { mtime: file.stat.mtime, entries });
+			}
 			const num = typeof session.frontmatter.number === "number"
 				? session.frontmatter.number
 				: 0;
@@ -71,6 +86,9 @@ export class TimelineView extends ItemView {
 				? session.frontmatter.date
 				: "";
 			out.push({ entity: session, number: num, date, entries });
+		}
+		for (const key of this.cachedBuckets.keys()) {
+			if (!seen.has(key)) this.cachedBuckets.delete(key);
 		}
 		out.sort((a, b) => {
 			if (a.number !== b.number) return a.number - b.number;
@@ -80,6 +98,10 @@ export class TimelineView extends ItemView {
 	}
 
 	async onClose(): Promise<void> {
+		if (this.rebuildDebounce !== null) {
+			window.clearTimeout(this.rebuildDebounce);
+			this.rebuildDebounce = null;
+		}
 		this.detachIndex?.();
 		this.detachIndex = null;
 		this.detachLeaf?.();

@@ -36,7 +36,7 @@ export class InitiativeTrackerView extends ItemView {
 		return INITIATIVE_VIEW_TYPE;
 	}
 	getDisplayText(): string {
-		return "Initiative Tracker";
+		return "Initiative tracker";
 	}
 	getIcon(): string {
 		return "swords";

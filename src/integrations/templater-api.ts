@@ -12,6 +12,19 @@ export class TemplaterBridge {
 		return Boolean(this.getApi());
 	}
 
+	/**
+	 * Templater's configured templates folder, if the plugin is installed and
+	 * has a folder set. Returns null otherwise. Used by the entity index to
+	 * skip files that aren't real entities.
+	 */
+	getTemplatesFolder(): string | null {
+		const plug = (this.app as unknown as AppWithPlugins).plugins?.plugins?.["templater-obsidian"];
+		const folder = plug?.settings?.templates_folder;
+		if (typeof folder !== "string") return null;
+		const trimmed = folder.trim();
+		return trimmed.length > 0 ? trimmed : null;
+	}
+
 	/** Create a file from one of our shipped templates. */
 	async createFromTemplate(
 		templateFile: TFile,
@@ -70,6 +83,9 @@ interface AppWithPlugins {
 					filename: string,
 					open: boolean,
 				) => Promise<TFile>;
+			};
+			settings?: {
+				templates_folder?: string;
 			};
 		}>;
 	};
