@@ -194,6 +194,30 @@ export default class CampaignPlugin extends Plugin {
 		return normalizePath(`${this.getActiveCampaignRoot()}/${relative}`);
 	}
 
+	/**
+	 * Publish always targets the explicitly-selected campaign
+	 * (`settings.campaignRoot`), not the file-context auto-detect — a user
+	 * who has just switched campaigns expects the export to land in the
+	 * new campaign's folder regardless of which file happens to be open.
+	 * Also scopes content to that campaign so multi-campaign vaults don't
+	 * cross-contaminate.
+	 */
+	private publishContext(): {
+		campaignRoot: string;
+		outputPath: string;
+		isExcluded: (path: string) => boolean;
+	} {
+		const campaignRoot = this.settings.campaignRoot;
+		const outputPath = normalizePath(`${campaignRoot}/${this.settings.publishFolder}`);
+		const prefix = `${campaignRoot}/`;
+		const isExcluded = (p: string): boolean => {
+			if (this.isPathExcluded(p)) return true;
+			if (!p.startsWith(prefix)) return true;
+			return false;
+		};
+		return { campaignRoot, outputPath, isExcluded };
+	}
+
 	/** List all campaigns by scanning Campaigns/ for subfolders. */
 	listCampaigns(): string[] {
 		const root = this.app.vault.getAbstractFileByPath("Campaigns");
@@ -361,14 +385,15 @@ export default class CampaignPlugin extends Plugin {
 			id: "publish-export",
 			name: "Publish: Export static site",
 			callback: async () => {
+				const ctx = this.publishContext();
 				const result = await exportStaticSite(this.app, this.entityIndex, {
-					outputPath: this.resolvePath(this.settings.publishFolder),
+					outputPath: ctx.outputPath,
 					title: this.settings.publishTitle,
 					includeGM: false,
-					isExcluded: (p) => this.isPathExcluded(p),
+					isExcluded: ctx.isExcluded,
 				});
 				new Notice(
-					`Exported ${result.filesExported} page(s), skipped ${result.filesSkipped} GM-only.`,
+					`Exported ${result.filesExported} page(s) to ${ctx.outputPath}, skipped ${result.filesSkipped} GM-only.`,
 				);
 			},
 		});
@@ -376,13 +401,16 @@ export default class CampaignPlugin extends Plugin {
 			id: "publish-export-gm",
 			name: "Publish: Export static site (include GM content)",
 			callback: async () => {
+				const ctx = this.publishContext();
 				const result = await exportStaticSite(this.app, this.entityIndex, {
-					outputPath: this.resolvePath(this.settings.publishFolder),
+					outputPath: ctx.outputPath,
 					title: this.settings.publishTitle,
 					includeGM: true,
-					isExcluded: (p) => this.isPathExcluded(p),
+					isExcluded: ctx.isExcluded,
 				});
-				new Notice(`Exported ${result.filesExported} page(s) (GM content included).`);
+				new Notice(
+					`Exported ${result.filesExported} page(s) to ${ctx.outputPath} (GM content included).`,
+				);
 			},
 		});
 		// Git push relies on Node's child_process; it only works on desktop.
@@ -392,14 +420,15 @@ export default class CampaignPlugin extends Plugin {
 				name: "Publish: Export and git push",
 				callback: async () => {
 					try {
+						const ctx = this.publishContext();
 						await exportStaticSite(this.app, this.entityIndex, {
-							outputPath: this.resolvePath(this.settings.publishFolder),
+							outputPath: ctx.outputPath,
 							title: this.settings.publishTitle,
 							includeGM: false,
-							isExcluded: (p) => this.isPathExcluded(p),
+							isExcluded: ctx.isExcluded,
 						});
 						const out = await gitPublish(this.app, {
-							repoPath: this.resolvePath(this.settings.publishFolder),
+							repoPath: ctx.outputPath,
 							remoteName: this.settings.gitRemote,
 							branch: this.settings.gitBranch,
 							commitMessage: "",
