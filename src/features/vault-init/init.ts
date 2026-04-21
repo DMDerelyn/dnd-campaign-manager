@@ -143,11 +143,10 @@ updated: {{NOW}}
 
 # {{NAME}}
 
+> *Objectives are tracked in frontmatter and edited from the Quest Board. The sections below are freeform notes.*
+
 ## Hook
 > *How do the players learn about this quest? A desperate NPC? A posted bounty? An overheard rumor at the tavern?*
-
-## Objectives
-- [ ]
 
 ## Complications
 > *What makes this harder than it seems? A twist, a moral dilemma, a rival group, a ticking clock.*

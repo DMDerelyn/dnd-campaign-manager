@@ -49,6 +49,7 @@ export class SessionRunnerView extends ItemView {
 		this.renderHeader(el);
 		this.renderQuickInsert(el);
 		this.renderSessionInfo(el);
+		this.renderQuestPanel(el);
 		this.renderNPCPanel(el);
 		this.renderNoteCapture(el);
 	}
@@ -116,6 +117,20 @@ export class SessionRunnerView extends ItemView {
 					if (!entity) return;
 					await this.appendToSessionLog(`- Mentioned [[${entity.name}]]`);
 					new Notice(`Logged: ${entity.name}`);
+				},
+			},
+			{
+				label: "Insert Quest Link",
+				action: async () => {
+					const picked = await new EntityPickerModal(
+						this.app,
+						this.plugin.entityIndex,
+						["quest"],
+						"Pick a quest…",
+					).pick();
+					if (!picked) return;
+					await this.appendToSessionLog(`- Mentioned quest [[${picked.name}]]`);
+					new Notice(`Logged: ${picked.name}`);
 				},
 			},
 			{
@@ -210,6 +225,75 @@ export class SessionRunnerView extends ItemView {
 		if (typeof strongStart === "string" && strongStart.length > 0) {
 			info.createEl("h5", { text: "Strong Start" });
 			info.createEl("p", { text: strongStart, cls: "campaign-sr-strong-start" });
+		}
+	}
+
+	private renderQuestPanel(el: HTMLElement): void {
+		const quests = this.plugin
+			.byKindInActiveCampaign("quest")
+			.filter((q) => {
+				const s = q.frontmatter.state;
+				return s === "hook" || s === "active" || s === undefined;
+			});
+		if (quests.length === 0) return;
+
+		const panel = el.createDiv({ cls: "campaign-sr-quests" });
+		panel.createEl("h4", { text: `Quests (${quests.length})` });
+		const list = panel.createDiv({ cls: "campaign-sr-quest-list" });
+
+		for (const quest of quests) {
+			const row = list.createDiv({ cls: "campaign-sr-quest-row" });
+
+			const link = row.createEl("a", { text: quest.name, cls: "campaign-sr-quest-link" });
+			link.addEventListener("click", (e) => {
+				e.preventDefault();
+				const file = this.app.vault.getAbstractFileByPath(quest.path);
+				if (file instanceof TFile) this.app.workspace.getLeaf(false).openFile(file);
+			});
+
+			const state = typeof quest.frontmatter.state === "string"
+				? quest.frontmatter.state
+				: "hook";
+			row.createEl("span", {
+				text: state,
+				cls: `campaign-sr-quest-state campaign-quest-state-${state}`,
+			});
+
+			const logBtn = row.createEl("button", { text: "Log Progress", cls: "campaign-init-btn-sm" });
+			logBtn.addEventListener("click", async () => {
+				if (!this.sessionFile) {
+					new Notice("Pick a session first.");
+					return;
+				}
+				const text = await this.plugin.promptText(
+					`Progress for "${quest.name}"`,
+				);
+				if (!text) return;
+				await this.appendToSessionLog(`- Quest [[${quest.name}]]: ${text}`);
+				new Notice(`Logged progress on ${quest.name}`);
+			});
+
+			const completeBtn = row.createEl("button", { text: "Complete", cls: "campaign-init-btn-sm" });
+			completeBtn.addEventListener("click", async () => {
+				const file = this.app.vault.getAbstractFileByPath(quest.path);
+				if (!(file instanceof TFile)) {
+					new Notice(`Could not open ${quest.path}`);
+					return;
+				}
+				try {
+					await this.app.fileManager.processFrontMatter(file, (fm) => {
+						fm.state = "completed";
+						fm.updated = new Date().toISOString();
+					});
+				} catch (err) {
+					new Notice(`Could not complete quest: ${(err as Error).message}`);
+					return;
+				}
+				if (this.sessionFile) {
+					await this.appendToSessionLog(`- Quest [[${quest.name}]] completed`);
+				}
+				new Notice(`${quest.name} marked completed`);
+			});
 		}
 	}
 

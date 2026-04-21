@@ -1,6 +1,17 @@
+import { Notice, TFile } from "obsidian";
 import type { Editor } from "obsidian";
 import type CampaignPlugin from "../../main";
-import type { EntityKind } from "../../schemas";
+import type { EntityKind, QuestState } from "../../schemas";
+import { EntityPickerModal } from "../../ui/modals/entity-picker";
+
+const QUEST_STATES: QuestState[] = [
+	"hook",
+	"active",
+	"completed",
+	"failed",
+	"abandoned",
+];
+const QUEST_STATE_SET: ReadonlySet<string> = new Set(QUEST_STATES);
 
 export interface SlashCommand {
 	trigger: string;
@@ -84,7 +95,80 @@ export function buildSlashCommands(): SlashCommand[] {
 		},
 	};
 
-	return [...entityCommands, rollCommand, linkCommand, logCommand];
+	const questStateCommand: SlashCommand = {
+		trigger: "quest state",
+		description: "Change a quest's state (hook/active/completed/failed/abandoned)",
+		async run({ plugin, tail, replace }) {
+			replace("");
+			const parsed = parseQuestStateTail(tail);
+			const quest = parsed.name
+				? (plugin.entityIndex
+						.byKind("quest")
+						.find((q) => q.name.toLowerCase() === parsed.name.toLowerCase())
+					?? await new EntityPickerModal(
+						plugin.app,
+						plugin.entityIndex,
+						["quest"],
+						`No quest named "${parsed.name}" — pick one…`,
+					).pick())
+				: await new EntityPickerModal(
+					plugin.app,
+					plugin.entityIndex,
+					["quest"],
+					"Pick a quest…",
+				).pick();
+			if (!quest) return;
+
+			const state = parsed.state
+				?? (await plugin.pickFromList(
+					`New state for "${quest.name}"`,
+					QUEST_STATES as unknown as string[],
+				));
+			if (!state || !QUEST_STATE_SET.has(state)) return;
+
+			const file = plugin.app.vault.getAbstractFileByPath(quest.path);
+			if (!(file instanceof TFile)) {
+				new Notice(`Could not open ${quest.path}`);
+				return;
+			}
+			try {
+				await plugin.app.fileManager.processFrontMatter(file, (fm) => {
+					fm.state = state;
+					fm.updated = new Date().toISOString();
+				});
+				new Notice(`${quest.name} → ${state}`);
+			} catch (err) {
+				new Notice(`Could not update quest: ${(err as Error).message}`);
+			}
+		},
+	};
+
+	return [...entityCommands, rollCommand, linkCommand, logCommand, questStateCommand];
+}
+
+/**
+ * Accept `"<name> <state>"`, `"<state>"`, or `""`. State must be one of
+ * QUEST_STATES; anything else is treated as part of the name.
+ */
+function parseQuestStateTail(tail: string): { name: string; state: QuestState | null } {
+	const trimmed = tail.trim();
+	if (!trimmed) return { name: "", state: null };
+	const lastSpace = trimmed.lastIndexOf(" ");
+	if (lastSpace === -1) {
+		// Single token — could be a state OR a name.
+		if (QUEST_STATE_SET.has(trimmed.toLowerCase())) {
+			return { name: "", state: trimmed.toLowerCase() as QuestState };
+		}
+		return { name: trimmed, state: null };
+	}
+	const maybeState = trimmed.slice(lastSpace + 1).toLowerCase();
+	if (QUEST_STATE_SET.has(maybeState)) {
+		return {
+			name: trimmed.slice(0, lastSpace).trim(),
+			state: maybeState as QuestState,
+		};
+	}
+	return { name: trimmed, state: null };
 }
 
 export function rollExpression(expr: string): { total: number; rolls: number[] } {

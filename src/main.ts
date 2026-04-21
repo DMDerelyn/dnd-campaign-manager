@@ -99,7 +99,7 @@ export default class CampaignPlugin extends Plugin {
 		);
 		this.registerView(
 			QUEST_BOARD_VIEW_TYPE,
-			(leaf) => new QuestBoardView(leaf, this.entityIndex),
+			(leaf) => new QuestBoardView(leaf, this),
 		);
 		this.registerView(
 			INITIATIVE_VIEW_TYPE,

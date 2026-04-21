@@ -30,7 +30,46 @@
 .campaign-quest-state-failed { color: var(--color-red); }
 .campaign-quest-state-abandoned { color: var(--text-faint); }
 .campaign-quest-link { font-weight: 500; cursor: pointer; }
-.campaign-quest-giver { color: var(--text-muted); font-size: 0.9em; }
+.campaign-quest-giver { color: var(--text-muted); font-size: 0.9em; margin-left: 0.25em; }
+.campaign-quest-row { padding: 0.4em 0; }
+.campaign-quest-head {
+	display: flex; flex-wrap: wrap; align-items: center; gap: 0.5em;
+}
+.campaign-quest-head .campaign-quest-link { flex: 1 1 auto; }
+.campaign-quest-state-select {
+	font-size: 0.85em;
+	padding: 0.1em 0.3em;
+	background: var(--background-secondary);
+	color: var(--text-normal);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 3px;
+}
+.campaign-quest-deadline {
+	font-size: 0.8em;
+	color: var(--text-muted);
+	padding: 0.05em 0.4em;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 3px;
+}
+.campaign-quest-deadline-overdue {
+	color: var(--color-red);
+	border-color: var(--color-red);
+}
+.campaign-quest-objectives {
+	list-style: none;
+	padding-left: 1em;
+	margin: 0.25em 0 0.1em;
+}
+.campaign-quest-objective {
+	display: flex; align-items: center; gap: 0.4em;
+	padding: 0.1em 0;
+	border-bottom: none;
+}
+.campaign-quest-objective-done {
+	text-decoration: line-through;
+	color: var(--text-muted);
+}
+.campaign-quest-empty { padding: 1em 0; }
 
 /* Slash suggestions */
 .campaign-slash-suggestion {
@@ -150,6 +189,17 @@
 .campaign-sr-info-table td { padding: 0.2em 0.5em; }
 .campaign-sr-info-label { font-weight: 500; color: var(--text-muted); white-space: nowrap; }
 .campaign-sr-strong-start { color: var(--text-accent); font-style: italic; }
+.campaign-sr-quests { margin: 0.75em 0; }
+.campaign-sr-quest-list { display: flex; flex-direction: column; gap: 0.2em; }
+.campaign-sr-quest-row { display: flex; align-items: center; gap: 0.5em; padding: 0.2em 0; flex-wrap: wrap; }
+.campaign-sr-quest-link { cursor: pointer; color: var(--text-accent); flex: 1 1 auto; }
+.campaign-sr-quest-link:hover { text-decoration: underline; }
+.campaign-sr-quest-state {
+	font-size: 0.75em;
+	padding: 0.1em 0.4em;
+	border-radius: 3px;
+	background: var(--background-secondary);
+}
 .campaign-sr-npcs { margin: 0.75em 0; }
 .campaign-sr-npc-list { display: flex; flex-direction: column; gap: 0.2em; }
 .campaign-sr-npc-row { display: flex; align-items: center; gap: 0.5em; padding: 0.2em 0; }
@@ -210,6 +260,10 @@
 .campaign-timeline-entries li:last-child { border-bottom: none; }
 .campaign-timeline-entry-ts {
 	font-family: var(--font-monospace); color: var(--text-muted); font-size: 0.85em;
+}
+.campaign-timeline-entry-quest {
+	border-left: 2px solid var(--text-accent);
+	padding-left: 0.5em;
 }
 .campaign-timeline-empty-session { color: var(--text-muted); font-size: 0.9em; font-style: italic; }
 

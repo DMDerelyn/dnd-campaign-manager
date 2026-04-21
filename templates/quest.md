@@ -23,6 +23,8 @@ updated: <% tp.date.now("YYYY-MM-DDTHH:mm:ss") %>
 
 # <% name %>
 
+> *Objectives are tracked in frontmatter and edited from the Quest Board. The sections below are freeform notes.*
+
 ## Hook
 
 ## Complications

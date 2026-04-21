@@ -179,7 +179,10 @@ export class TimelineView extends ItemView {
 			}
 			const list = section.createEl("ul", { cls: "campaign-timeline-entries" });
 			for (const entry of filtered) {
-				const li = list.createEl("li");
+				const isQuest = /^Quest \[\[/.test(entry.text);
+				const li = list.createEl("li", {
+					cls: isQuest ? "campaign-timeline-entry-quest" : undefined,
+				});
 				if (entry.timestamp) {
 					li.createEl("span", {
 						text: entry.timestamp,
