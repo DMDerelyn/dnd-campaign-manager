@@ -2,6 +2,7 @@ import type { App } from "obsidian";
 import { Notice, TFile } from "obsidian";
 import type { CampaignSettings } from "../../settings";
 import { ulid } from "../../core/ulid";
+import { resolveCampaignSubfolder } from "../../core/path-safety";
 
 export const ENTITY_TEMPLATES: Record<string, string> = {
 	npc: `---
@@ -389,6 +390,11 @@ export async function initializeCampaignVault(
 
 	for (const kind of kinds) {
 		await ensureFolder(app, `${root}/${settings.folders[kind]}`);
+	}
+
+	const mapsPath = resolveCampaignSubfolder(root, settings.mapsFolder);
+	if (mapsPath) {
+		await ensureFolder(app, mapsPath);
 	}
 
 	await ensureFolder(app, "Templates/Campaign");

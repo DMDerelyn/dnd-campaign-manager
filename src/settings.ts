@@ -1,9 +1,11 @@
-import { PluginSettingTab, Setting, App } from "obsidian";
+import { Notice, PluginSettingTab, Setting, App } from "obsidian";
 import type CampaignPlugin from "./main";
 import type { EntityKind } from "./schemas";
+import { resolveCampaignSubfolder } from "./core/path-safety";
 
 export interface CampaignSettings {
 	folders: Record<EntityKind, string>;
+	mapsFolder: string;
 	campaignRoot: string;
 	enableAutolinkOnSave: boolean;
 	strictValidation: boolean;
@@ -20,6 +22,7 @@ export const DEFAULT_SETTINGS: CampaignSettings = {
 		faction: "Factions",
 		item: "Items",
 	},
+	mapsFolder: "Maps",
 	campaignRoot: "Campaigns/My Campaign",
 	enableAutolinkOnSave: false,
 	strictValidation: false,
@@ -93,6 +96,22 @@ export class CampaignSettingTab extends PluginSettingTab {
 						}),
 				);
 		}
+		new Setting(containerEl)
+			.setName("Maps")
+			.setDesc("Subfolder where raw map images live. Drop image files here to pick them directly from the map view. Must be a relative path inside the campaign folder.")
+			.addText((t) =>
+				t
+					.setValue(this.plugin.settings.mapsFolder)
+					.onChange(async (v) => {
+						const trimmed = v.trim();
+						if (trimmed && resolveCampaignSubfolder("_", trimmed) === null) {
+							new Notice("Maps folder must be a relative path inside the campaign (no '..' or absolute paths).");
+							return;
+						}
+						this.plugin.settings.mapsFolder = trimmed;
+						await this.plugin.saveSettings();
+					}),
+			);
 
 		new Setting(containerEl).setName("Validation").setHeading();
 		new Setting(containerEl)
