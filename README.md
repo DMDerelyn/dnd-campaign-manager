@@ -9,7 +9,7 @@ Plan and run D&D 5e campaigns entirely inside Obsidian. One plugin replaces a st
 ## Quick Start
 
 1. **Install** — Copy `main.js`, `manifest.json`, and `styles.css` into your vault's `.obsidian/plugins/dnd-campaign-manager/` folder. Enable the plugin in Settings > Community Plugins.
-2. **Initialize your vault** — Open the command palette (`Ctrl/Cmd + P`) and run **"Campaign: Initialize Campaign Vault"**. Enter your campaign name (e.g., *Curse of Strahd*). This creates all the folders and templates you need.
+2. **Initialize your vault** — Open the command palette (`Ctrl/Cmd + P`) and run **"Campaign: Initialize Campaign Vault"**. Enter your campaign name (e.g., *Curse of Strahd*). This creates all the folders and templates you need. This can be done in an already existing vault.
 3. **Create your first entity** — Run **"Campaign: Create NPC"** from the command palette, or type `/add npc Goruk the Mighty` in any note.
 
 ### Required Companion Plugins
