@@ -1,6 +1,6 @@
 import esbuild from "esbuild";
 import process from "process";
-import builtins from "builtin-modules";
+import { builtinModules as builtins } from "module";
 import { copyFileSync } from "fs";
 
 const prod = process.argv[2] === "production";

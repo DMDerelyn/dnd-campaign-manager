@@ -161,7 +161,7 @@
 .campaign-init-conditions { display: flex; flex-wrap: wrap; gap: 0.2em; }
 .campaign-init-cond-chip {
 	font-size: 0.7em; padding: 0.15em 0.4em; border-radius: 10px;
-	background: var(--color-red); color: #fff; cursor: pointer;
+	background: var(--color-red); color: #ffffff; cursor: pointer;
 }
 
 /* Condition picker */
@@ -170,7 +170,7 @@
 	padding: 0.3em 0.5em; border-radius: 4px; cursor: pointer;
 	background: var(--interactive-normal); border: 1px solid var(--background-modifier-border);
 }
-.campaign-cond-active { background: var(--text-accent); color: #fff; }
+.campaign-cond-active { background: var(--text-accent); color: #ffffff; }
 
 /* Session Runner */
 .campaign-session-runner { padding: 0.5em 1em; overflow-y: auto; }
@@ -206,11 +206,11 @@
 .campaign-sr-npc-link { cursor: pointer; color: var(--text-accent); }
 .campaign-sr-npc-link:hover { text-decoration: underline; }
 .campaign-sr-disp { font-size: 0.8em; padding: 0.1em 0.4em; border-radius: 3px; }
-.campaign-sr-disp-hostile { background: var(--color-red); color: #fff; }
-.campaign-sr-disp-unfriendly { background: #c66; color: #fff; }
+.campaign-sr-disp-hostile { background: var(--color-red); color: #ffffff; }
+.campaign-sr-disp-unfriendly { background: #cc6666; color: #ffffff; }
 .campaign-sr-disp-neutral { background: var(--background-modifier-border); }
-.campaign-sr-disp-friendly { background: var(--color-green); color: #fff; }
-.campaign-sr-disp-allied { background: #48a; color: #fff; }
+.campaign-sr-disp-friendly { background: var(--color-green); color: #ffffff; }
+.campaign-sr-disp-allied { background: #4488aa; color: #ffffff; }
 .campaign-sr-capture { margin: 0.75em 0; }
 .campaign-sr-capture-input { width: 100%; resize: vertical; font-family: inherit; padding: 0.4em; border-radius: 4px; border: 1px solid var(--background-modifier-border); }
 .campaign-sr-entity-link { cursor: pointer; color: var(--text-accent); }
@@ -287,7 +287,7 @@
 	font-weight: bold;
 	letter-spacing: 0.02em;
 }
-.campaign-statblock-sub { font-style: italic; color: #444; margin-bottom: 0.3em; }
+.campaign-statblock-sub { font-style: italic; color: #444444; margin-bottom: 0.3em; }
 .campaign-statblock-rule {
 	border-top: 1px solid #8b2020;
 	margin: 0.4em 0;
@@ -313,7 +313,7 @@
 }
 .campaign-statblock-action { margin: 0.35em 0; }
 .campaign-statblock-action em { font-style: italic; }
-.campaign-statblock-desc { margin-top: 0.3em; color: #222; }
+.campaign-statblock-desc { margin-top: 0.3em; color: #222222; }
 .campaign-statblock-error {
 	background: var(--background-secondary);
 	border: 1px solid var(--color-red);
