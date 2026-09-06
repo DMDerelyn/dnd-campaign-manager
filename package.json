@@ -5,7 +5,8 @@
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
-    "build": "tsc --noEmit && node esbuild.config.mjs production"
+    "build": "tsc --noEmit && node esbuild.config.mjs production",
+    "test": "node --import tsx --test \"src/**/*.test.ts\""
   },
   "keywords": ["obsidian", "ttrpg", "dnd", "5e"],
   "author": "DMDerelyn",
@@ -16,9 +17,10 @@
     "esbuild": "^0.25.0",
     "obsidian": "latest",
     "tslib": "^2.6.2",
+    "tsx": "^4.23.13",
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "zod": "^3.22.4"
+    "zod": "~3.25.76"
   }
 }

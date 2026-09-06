@@ -10,6 +10,10 @@ export interface CampaignSettings {
 	enableAutolinkOnSave: boolean;
 	strictValidation: boolean;
 	excludedFolders: string[];
+	agentGuide: {
+		/** Also write a short CLAUDE.md that points at AGENTS.md. */
+		emitClaudeMd: boolean;
+	};
 }
 
 export const DEFAULT_SETTINGS: CampaignSettings = {
@@ -27,6 +31,9 @@ export const DEFAULT_SETTINGS: CampaignSettings = {
 	enableAutolinkOnSave: false,
 	strictValidation: false,
 	excludedFolders: [],
+	agentGuide: {
+		emitClaudeMd: false,
+	},
 };
 
 const KINDS: EntityKind[] = ["pc", "npc", "quest", "location", "session", "faction", "item"];
@@ -152,6 +159,31 @@ export class CampaignSettingTab extends PluginSettingTab {
 					this.plugin.settings.enableAutolinkOnSave = v;
 					await this.plugin.saveSettings();
 				}),
+			);
+
+		new Setting(containerEl).setName("Agent integration").setHeading();
+		containerEl.createEl("p", {
+			text: "Generate an AGENTS.md at the campaign root that explains the folder layout, frontmatter schema, and search recipes to a coding assistant (Claude Code, Codex, and similar). Run the 'Generate agent guide' command to write or refresh it.",
+			cls: "setting-item-description",
+		});
+		containerEl.createEl("p", {
+			text: "A hand-authored AGENTS.md or CLAUDE.md is never overwritten: if one exists that this plugin did not create, the guide is written to a '.generated.md' sibling instead.",
+			cls: "setting-item-description",
+		});
+		new Setting(containerEl)
+			.setName("Also write CLAUDE.md")
+			.setDesc("Write a short CLAUDE.md next to AGENTS.md that points assistants at the full guide.")
+			.addToggle((t) =>
+				t.setValue(this.plugin.settings.agentGuide.emitClaudeMd).onChange(async (v) => {
+					this.plugin.settings.agentGuide.emitClaudeMd = v;
+					await this.plugin.saveSettings();
+				}),
+			);
+		new Setting(containerEl)
+			.setName("Generate agent guide now")
+			.setDesc("Write AGENTS.md (and CLAUDE.md, if enabled) for the active campaign.")
+			.addButton((b) =>
+				b.setButtonText("Generate").onClick(() => this.plugin.generateAgentGuide()),
 			);
 
 	}
