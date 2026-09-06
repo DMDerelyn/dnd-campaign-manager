@@ -38,7 +38,7 @@ export class DiagnosticsView extends ItemView {
 		contentEl.empty();
 		contentEl.addClass("campaign-diagnostics");
 
-		const header = contentEl.createEl("div", { cls: "campaign-diag-header" });
+		const header = contentEl.createDiv({ cls: "campaign-diag-header" });
 		const diags = this.index.allDiagnostics();
 		header.createEl("h3", { text: `Campaign issues (${diags.length})` });
 
@@ -51,7 +51,7 @@ export class DiagnosticsView extends ItemView {
 		}
 
 		for (const diag of diags) {
-			const card = contentEl.createEl("div", { cls: "campaign-diag-card" });
+			const card = contentEl.createDiv({ cls: "campaign-diag-card" });
 			const title = card.createEl("a", {
 				text: diag.path,
 				cls: "campaign-diag-file",
@@ -59,7 +59,9 @@ export class DiagnosticsView extends ItemView {
 			title.addEventListener("click", (e) => {
 				e.preventDefault();
 				const file = this.app.vault.getAbstractFileByPath(diag.path);
-				if (file instanceof TFile) this.app.workspace.getLeaf(false).openFile(file);
+				if (file instanceof TFile) {
+					void this.app.workspace.getLeaf(false).openFile(file);
+				}
 			});
 			const list = card.createEl("ul", { cls: "campaign-diag-list" });
 			for (const issue of diag.issues) {

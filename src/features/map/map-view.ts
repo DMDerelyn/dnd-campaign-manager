@@ -2,6 +2,7 @@ import { ItemView, WorkspaceLeaf, TFile, Notice } from "obsidian";
 import type CampaignPlugin from "../../main";
 import type { IndexedEntity } from "../../core/entity-index";
 import { MapPickerModal } from "../../ui/modals/map-picker";
+import { onClick } from "../../core/format";
 
 export const MAP_VIEW_TYPE = "campaign-map";
 
@@ -93,7 +94,7 @@ export class MapView extends ItemView {
 		const toolbar = el.createDiv({ cls: "campaign-map-toolbar" });
 
 		const pickBtn = toolbar.createEl("button", { text: "Pick Map", cls: "campaign-init-btn" });
-		pickBtn.addEventListener("click", async () => {
+		onClick(pickBtn, async () => {
 			const picked = await new MapPickerModal(this.app, this.plugin).pick();
 			if (!picked) return;
 			if (picked.kind === "location") {
@@ -115,7 +116,7 @@ export class MapView extends ItemView {
 		});
 
 		const saveBtn = toolbar.createEl("button", { text: "Save Fog/Pins", cls: "campaign-init-btn" });
-		saveBtn.addEventListener("click", () => this.saveFogAndPins());
+		saveBtn.addEventListener("click", () => void this.saveFogAndPins());
 
 		const resetZoom = toolbar.createEl("button", { text: "Reset View", cls: "campaign-init-btn" });
 		resetZoom.addEventListener("click", () => {
@@ -175,9 +176,12 @@ export class MapView extends ItemView {
 		const name = raw.trim() || basename;
 
 		const file = await this.plugin.createEntity("location", name);
-		await this.app.fileManager.processFrontMatter(file, (fm) => {
-			fm.map_image = imagePath;
-		});
+		await this.app.fileManager.processFrontMatter(
+			file,
+			(fm: Record<string, unknown>) => {
+				fm.map_image = imagePath;
+			},
+		);
 
 		const entity = await this.waitForIndexed(file.path);
 		if (!entity) {
@@ -311,7 +315,7 @@ export class MapView extends ItemView {
 		const fogScale = Math.min(1, MAX_FOG_DIMENSION / Math.max(iw, ih));
 		const fw = Math.max(1, Math.round(iw * fogScale));
 		const fh = Math.max(1, Math.round(ih * fogScale));
-		const layer = document.createElement("canvas");
+		const layer = createEl("canvas");
 		layer.width = fw;
 		layer.height = fh;
 		const lctx = layer.getContext("2d");
@@ -529,6 +533,7 @@ export class MapView extends ItemView {
 		if (this.playerMode) return;
 		const rawLabel = await this.plugin.promptText("Pin label");
 		if (rawLabel === null) return;
+		// eslint-disable-next-line no-control-regex -- strips ASCII control chars from a user-entered pin label
 		const label = rawLabel.replace(/[\x00-\x1f\x7f]/g, "").slice(0, 100);
 		const picked = await this.plugin.promptEntityPicker();
 		const target = picked ? `[[${picked.name}]]` : "";
@@ -551,7 +556,7 @@ export class MapView extends ItemView {
 			this.setLocation(entity);
 			return;
 		}
-		this.app.workspace.getLeaf(false).openFile(file);
+		void this.app.workspace.getLeaf(false).openFile(file);
 	}
 
 	private revealAt(p: { clientX: number; clientY: number }): void {
@@ -614,10 +619,13 @@ export class MapView extends ItemView {
 		const file = this.app.vault.getAbstractFileByPath(this.location.path);
 		if (!(file instanceof TFile)) return;
 
-		await this.app.fileManager.processFrontMatter(file, (fm) => {
-			fm.fog_revealed = this.revealedPolygons;
-			fm.pins = this.pins;
-		});
+		await this.app.fileManager.processFrontMatter(
+			file,
+			(fm: Record<string, unknown>) => {
+				fm.fog_revealed = this.revealedPolygons;
+				fm.pins = this.pins;
+			},
+		);
 		new Notice("Fog and pins saved to frontmatter.");
 	}
 

@@ -709,7 +709,7 @@ export default class CampaignPlugin extends Plugin {
 			leaf = this.app.workspace.getRightLeaf(false);
 			if (leaf) await leaf.setViewState({ type, active: true });
 		}
-		if (leaf) this.app.workspace.revealLeaf(leaf);
+		if (leaf) void this.app.workspace.revealLeaf(leaf);
 	}
 
 	pickFromList(placeholder: string, items: string[]): Promise<string | null> {
@@ -745,10 +745,13 @@ function basename(path: string): string {
 }
 
 function sanitizeFilename(name: string): string {
-	return name
-		.replace(/[\x00-\x1f\x7f\\/:*?"<>|]/g, "-")
-		.replace(/\s+/g, " ")
-		.trim();
+	return (
+		name
+			// eslint-disable-next-line no-control-regex -- deliberately strips ASCII control chars and path-reserved punctuation from a value that becomes a file name
+			.replace(/[\x00-\x1f\x7f\\/:*?"<>|]/g, "-")
+			.replace(/\s+/g, " ")
+			.trim()
+	);
 }
 
 function kindStub(kind: EntityKind): string[] {

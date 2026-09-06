@@ -2,6 +2,7 @@ import { ItemView, WorkspaceLeaf, TFile, Notice } from "obsidian";
 import type CampaignPlugin from "../../main";
 import { EntityPickerModal } from "../../ui/modals/entity-picker";
 import { rollExpression } from "../slash/commands";
+import { onClick, scalarText } from "../../core/format";
 
 export const SESSION_RUNNER_VIEW_TYPE = "campaign-session-runner";
 
@@ -62,7 +63,8 @@ export class SessionRunnerView extends ItemView {
 
 		const controls = header.createDiv({ cls: "campaign-sr-controls" });
 		const pickBtn = controls.createEl("button", { text: "Pick Session", cls: "campaign-init-btn" });
-		pickBtn.addEventListener("click", async () => {
+		pickBtn.addEventListener("click", () => {
+			void (async () => {
 			const sessions = this.plugin.byKindInActiveCampaign("session");
 			if (sessions.length === 0) {
 				const root = this.plugin.getActiveCampaignRoot();
@@ -87,12 +89,13 @@ export class SessionRunnerView extends ItemView {
 			}
 			this.setSessionFile(file);
 			new Notice(`Loaded session: ${file.basename}`);
+			})();
 		});
 
 		const openBtn = controls.createEl("button", { text: "Open in Editor", cls: "campaign-init-btn" });
 		openBtn.addEventListener("click", () => {
 			if (this.sessionFile) {
-				this.app.workspace.getLeaf("split").openFile(this.sessionFile);
+				void this.app.workspace.getLeaf("split").openFile(this.sessionFile);
 			}
 		});
 	}
@@ -211,7 +214,7 @@ export class SessionRunnerView extends ItemView {
 			if (value === undefined || value === null || value === "") continue;
 			const tr = table.createEl("tr");
 			tr.createEl("td", { text: label, cls: "campaign-sr-info-label" });
-			tr.createEl("td", { text: String(value) });
+			tr.createEl("td", { text: scalarText(value) });
 		}
 
 		const pcsPresent = fm.pcs_present;
@@ -251,19 +254,21 @@ export class SessionRunnerView extends ItemView {
 			link.addEventListener("click", (e) => {
 				e.preventDefault();
 				const file = this.app.vault.getAbstractFileByPath(quest.path);
-				if (file instanceof TFile) this.app.workspace.getLeaf(false).openFile(file);
+				if (file instanceof TFile) {
+					void this.app.workspace.getLeaf(false).openFile(file);
+				}
 			});
 
 			const state = typeof quest.frontmatter.state === "string"
 				? quest.frontmatter.state
 				: "hook";
-			row.createEl("span", {
+			row.createSpan({
 				text: state,
 				cls: `campaign-sr-quest-state campaign-quest-state-${state}`,
 			});
 
 			const logBtn = row.createEl("button", { text: "Log Progress", cls: "campaign-init-btn-sm" });
-			logBtn.addEventListener("click", async () => {
+			onClick(logBtn, async () => {
 				if (!this.sessionFile) {
 					new Notice("Pick a session first.");
 					return;
@@ -277,17 +282,20 @@ export class SessionRunnerView extends ItemView {
 			});
 
 			const completeBtn = row.createEl("button", { text: "Complete", cls: "campaign-init-btn-sm" });
-			completeBtn.addEventListener("click", async () => {
+			onClick(completeBtn, async () => {
 				const file = this.app.vault.getAbstractFileByPath(quest.path);
 				if (!(file instanceof TFile)) {
 					new Notice(`Could not open ${quest.path}`);
 					return;
 				}
 				try {
-					await this.app.fileManager.processFrontMatter(file, (fm) => {
-						fm.state = "completed";
-						fm.updated = new Date().toISOString();
-					});
+					await this.app.fileManager.processFrontMatter(
+						file,
+						(fm: Record<string, unknown>) => {
+							fm.state = "completed";
+							fm.updated = new Date().toISOString();
+						},
+					);
 				} catch (err) {
 					new Notice(`Could not complete quest: ${(err as Error).message}`);
 					return;
@@ -313,16 +321,18 @@ export class SessionRunnerView extends ItemView {
 			link.addEventListener("click", (e) => {
 				e.preventDefault();
 				const file = this.app.vault.getAbstractFileByPath(npc.path);
-				if (file instanceof TFile) this.app.workspace.getLeaf(false).openFile(file);
+				if (file instanceof TFile) {
+					void this.app.workspace.getLeaf(false).openFile(file);
+				}
 			});
 
 			const disp = npc.frontmatter.disposition;
 			if (typeof disp === "string") {
-				row.createEl("span", { text: disp, cls: `campaign-sr-disp campaign-sr-disp-${disp}` });
+				row.createSpan({ text: disp, cls: `campaign-sr-disp campaign-sr-disp-${disp}` });
 			}
 
 			const insertBtn = row.createEl("button", { text: "Log", cls: "campaign-init-btn-sm" });
-			insertBtn.addEventListener("click", async () => {
+			onClick(insertBtn, async () => {
 				if (!this.sessionFile) {
 					new Notice("Pick a session first.");
 					return;
@@ -341,13 +351,14 @@ export class SessionRunnerView extends ItemView {
 			cls: "campaign-sr-capture-input",
 			attr: { rows: "3", placeholder: "Type a note and press Enter to append to session..." },
 		});
-		textarea.addEventListener("keydown", async (e) => {
+		textarea.addEventListener("keydown", (e) => {
 			if (e.key === "Enter" && !e.shiftKey) {
 				e.preventDefault();
 				const text = textarea.value.trim();
 				if (!text || !this.sessionFile) return;
-				await this.appendToSessionFile(text);
-				textarea.value = "";
+				void this.appendToSessionFile(text).then(() => {
+					textarea.value = "";
+				});
 			}
 		});
 	}
@@ -392,7 +403,7 @@ export class SessionRunnerView extends ItemView {
 		link.addEventListener("click", (e) => {
 			e.preventDefault();
 			const file = this.app.metadataCache.getFirstLinkpathDest(name, "");
-			if (file) this.app.workspace.getLeaf(false).openFile(file);
+			if (file) void this.app.workspace.getLeaf(false).openFile(file);
 		});
 	}
 }

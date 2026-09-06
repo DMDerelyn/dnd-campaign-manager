@@ -45,7 +45,7 @@ export class EntityPickerModal extends FuzzySuggestModal<IndexedEntity> {
 
 	onClose(): void {
 		// Defer so onChooseItem (which fires in the same tick) wins if the user picked.
-		setTimeout(() => {
+		window.setTimeout(() => {
 			if (this.resolver) {
 				this.resolver(this.chosen);
 				this.resolver = null;

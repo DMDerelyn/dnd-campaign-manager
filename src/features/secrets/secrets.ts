@@ -1,6 +1,5 @@
 import { TFile, normalizePath } from "obsidian";
 import type { App } from "obsidian";
-import { parseSecrets } from "./parser";
 
 export { parseSecrets } from "./parser";
 export type { SecretEntry } from "./parser";

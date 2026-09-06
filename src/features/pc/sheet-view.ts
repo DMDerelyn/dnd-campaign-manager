@@ -1,6 +1,7 @@
 import { ItemView, WorkspaceLeaf, TFile } from "obsidian";
 import type CampaignPlugin from "../../main";
 import type { IndexedEntity } from "../../core/entity-index";
+import { scalarText } from "../../core/format";
 
 export const PC_SHEET_VIEW_TYPE = "campaign-pc-sheet";
 
@@ -52,15 +53,17 @@ export class PCSheetView extends ItemView {
 
 		const header = el.createDiv({ cls: "campaign-pc-header" });
 		const pickBtn = header.createEl("button", { text: "Pick PC", cls: "campaign-init-btn" });
-		pickBtn.addEventListener("click", async () => {
-			const pcs = this.plugin.byKindInActiveCampaign("pc");
-			if (pcs.length === 0) {
-				const root = this.plugin.getActiveCampaignRoot();
-				new Notice(`No PCs in active campaign (${root}).`);
-				return;
-			}
-			const picked = await this.plugin.promptEntityPicker(["pc"]);
-			if (picked && picked.kind === "pc") this.setEntity(picked);
+		pickBtn.addEventListener("click", () => {
+			void (async () => {
+				const pcs = this.plugin.byKindInActiveCampaign("pc");
+				if (pcs.length === 0) {
+					const root = this.plugin.getActiveCampaignRoot();
+					new Notice(`No PCs in active campaign (${root}).`);
+					return;
+				}
+				const picked = await this.plugin.promptEntityPicker(["pc"]);
+				if (picked && picked.kind === "pc") this.setEntity(picked);
+			})();
 		});
 
 		const importBtn = header.createEl("button", { text: "Import from DDB", cls: "campaign-init-btn" });
@@ -85,9 +88,11 @@ export class PCSheetView extends ItemView {
 		section.createEl("h2", { text: String(this.entity?.name ?? "") });
 
 		const meta: string[] = [];
-		if (fm.race) meta.push(String(fm.race));
-		if (fm.class) meta.push(`${fm.class} ${fm.level ?? ""}`);
-		if (fm.background) meta.push(String(fm.background));
+		if (scalarText(fm.race)) meta.push(scalarText(fm.race));
+		if (scalarText(fm.class)) {
+			meta.push(`${scalarText(fm.class)} ${scalarText(fm.level)}`.trim());
+		}
+		if (scalarText(fm.background)) meta.push(scalarText(fm.background));
 		section.createEl("p", { text: meta.join(" | "), cls: "campaign-pc-meta" });
 
 		if (typeof fm.dndbeyond_url === "string" && /^https?:\/\//i.test(fm.dndbeyond_url)) {
@@ -113,9 +118,9 @@ export class PCSheetView extends ItemView {
 			const val = stats[key] ?? 10;
 			const mod = Math.floor((val - 10) / 2);
 			const cell = grid.createDiv({ cls: "campaign-pc-stat-cell" });
-			cell.createEl("div", { text: key.toUpperCase(), cls: "campaign-pc-stat-label" });
-			cell.createEl("div", { text: String(val), cls: "campaign-pc-stat-value" });
-			cell.createEl("div", { text: `${mod >= 0 ? "+" : ""}${mod}`, cls: "campaign-pc-stat-mod" });
+			cell.createDiv({ text: key.toUpperCase(), cls: "campaign-pc-stat-label" });
+			cell.createDiv({ text: String(val), cls: "campaign-pc-stat-value" });
+			cell.createDiv({ text: `${mod >= 0 ? "+" : ""}${mod}`, cls: "campaign-pc-stat-mod" });
 		}
 	}
 
@@ -128,8 +133,8 @@ export class PCSheetView extends ItemView {
 		const initBonus = typeof fm.initiative_bonus === "number" ? fm.initiative_bonus : 0;
 		const fields: [string, string][] = [
 			["HP", hp ? `${hp.current ?? 0} / ${hp.max ?? 0}${(hp.temp ?? 0) > 0 ? ` (+${hp.temp} temp)` : ""}` : "\u2014"],
-			["AC", String(fm.ac ?? "\u2014")],
-			["Speed", `${fm.speed ?? 30} ft`],
+			["AC", scalarText(fm.ac) || "\u2014"],
+			["Speed", `${scalarText(fm.speed) || "30"} ft`],
 			["Initiative", `${initBonus >= 0 ? "+" : ""}${initBonus}`],
 		];
 		for (const [label, value] of fields) {
@@ -147,7 +152,9 @@ export class PCSheetView extends ItemView {
 		openBtn.addEventListener("click", () => {
 			if (this.entity) {
 				const file = this.app.vault.getAbstractFileByPath(this.entity.path);
-				if (file instanceof TFile) this.app.workspace.getLeaf(false).openFile(file);
+				if (file instanceof TFile) {
+					void this.app.workspace.getLeaf(false).openFile(file);
+				}
 			}
 		});
 

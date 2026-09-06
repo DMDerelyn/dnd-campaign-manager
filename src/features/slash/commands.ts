@@ -17,7 +17,7 @@ export interface SlashCommand {
 	trigger: string;
 	description: string;
 	/** Execute replaces the `/trigger...` text that was matched. */
-	run(args: SlashArgs): Promise<void> | void;
+	run: (args: SlashArgs) => Promise<void> | void;
 }
 
 export interface SlashArgs {
@@ -26,7 +26,7 @@ export interface SlashArgs {
 	/** Raw text the user typed after the trigger, e.g. "Goruk name=Goruk". */
 	tail: string;
 	/** Replace the matched `/trigger tail` span with given text. */
-	replace(text: string): void;
+	replace: (text: string) => void;
 }
 
 const KIND_TRIGGERS: Record<string, EntityKind> = {
@@ -43,7 +43,7 @@ export function buildSlashCommands(): SlashCommand[] {
 		([trigger, kind]) => ({
 			trigger,
 			description: `Create a new ${kind} entity and insert a link`,
-			async run({ plugin, tail, replace }) {
+			run: async ({ plugin, tail, replace }) => {
 				let name = tail.trim();
 				if (!name) {
 					const options = kind === "npc"
@@ -67,7 +67,7 @@ export function buildSlashCommands(): SlashCommand[] {
 	const rollCommand: SlashCommand = {
 		trigger: "roll",
 		description: "Roll dice (e.g. /roll 2d6+3)",
-		run({ tail, replace }) {
+		run: ({ tail, replace }) => {
 			const expr = tail.trim() || "1d20";
 			const result = rollExpression(expr);
 			replace(`\`${expr} = ${result.total}\` (${result.rolls.join(", ")})`);
@@ -77,18 +77,16 @@ export function buildSlashCommands(): SlashCommand[] {
 	const linkCommand: SlashCommand = {
 		trigger: "link",
 		description: "Insert a wikilink picked from the campaign index",
-		run({ plugin, replace }) {
-			plugin.promptEntityPicker().then((entity) => {
-				if (entity) replace(`[[${entity.name}]]`);
-				else replace("");
-			});
+		run: async ({ plugin, replace }) => {
+			const entity = await plugin.promptEntityPicker();
+			replace(entity ? `[[${entity.name}]]` : "");
 		},
 	};
 
 	const logCommand: SlashCommand = {
 		trigger: "log event",
 		description: "Insert a timestamped event line",
-		run({ tail, replace }) {
+		run: ({ tail, replace }) => {
 			const text = tail.trim();
 			const ts = new Date().toISOString().slice(0, 16).replace("T", " ");
 			replace(`- **${ts}** — ${text}`);
@@ -98,7 +96,7 @@ export function buildSlashCommands(): SlashCommand[] {
 	const questStateCommand: SlashCommand = {
 		trigger: "quest state",
 		description: "Change a quest's state (hook/active/completed/failed/abandoned)",
-		async run({ plugin, tail, replace }) {
+		run: async ({ plugin, tail, replace }) => {
 			replace("");
 			const parsed = parseQuestStateTail(tail);
 			const root = plugin.getActiveCampaignRoot();
@@ -125,7 +123,7 @@ export function buildSlashCommands(): SlashCommand[] {
 			const state = parsed.state
 				?? (await plugin.pickFromList(
 					`New state for "${quest.name}"`,
-					QUEST_STATES as unknown as string[],
+					QUEST_STATES,
 				));
 			if (!state || !QUEST_STATE_SET.has(state)) return;
 
@@ -135,10 +133,13 @@ export function buildSlashCommands(): SlashCommand[] {
 				return;
 			}
 			try {
-				await plugin.app.fileManager.processFrontMatter(file, (fm) => {
-					fm.state = state;
-					fm.updated = new Date().toISOString();
-				});
+				await plugin.app.fileManager.processFrontMatter(
+					file,
+					(fm: Record<string, unknown>) => {
+						fm.state = state;
+						fm.updated = new Date().toISOString();
+					},
+				);
 				new Notice(`${quest.name} → ${state}`);
 			} catch (err) {
 				new Notice(`Could not update quest: ${(err as Error).message}`);

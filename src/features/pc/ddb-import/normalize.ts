@@ -135,7 +135,7 @@ function extractStats(data: Record<string, unknown>): NormalizedPC["stats"] {
 			if (!Array.isArray(source)) continue;
 			for (const mod of source) {
 				if (mod.type !== "bonus") continue;
-				for (const [id, key] of Object.entries(STAT_MAP)) {
+				for (const [, key] of Object.entries(STAT_MAP)) {
 					if (mod.subType === `${key}-score`) {
 						result[key] += mod.value ?? 0;
 					}

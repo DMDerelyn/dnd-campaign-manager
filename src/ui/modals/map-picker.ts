@@ -68,7 +68,7 @@ export class MapPickerModal extends FuzzySuggestModal<MapPickerItem> {
 	}
 
 	onClose(): void {
-		setTimeout(() => {
+		window.setTimeout(() => {
 			if (this.resolver) {
 				this.resolver(this.chosen);
 				this.resolver = null;

@@ -41,13 +41,13 @@ function renderError(el: HTMLElement, message: string): void {
 function renderBlock(el: HTMLElement, data: StatblockData): void {
 	const block = el.createDiv({ cls: "campaign-statblock" });
 
-	block.createEl("div", { text: data.name, cls: "campaign-statblock-name" });
+	block.createDiv({ text: data.name, cls: "campaign-statblock-name" });
 	const subtitle = [data.size, data.type, data.alignment].filter(Boolean).join(", ");
 	if (subtitle) {
-		block.createEl("div", { text: subtitle, cls: "campaign-statblock-sub" });
+		block.createDiv({ text: subtitle, cls: "campaign-statblock-sub" });
 	}
 
-	const sep1 = block.createEl("div", { cls: "campaign-statblock-rule" });
+	const sep1 = block.createDiv({ cls: "campaign-statblock-rule" });
 	sep1.setAttribute("role", "separator");
 
 	const topAttrs = block.createDiv({ cls: "campaign-statblock-attrs" });
@@ -56,7 +56,7 @@ function renderBlock(el: HTMLElement, data: StatblockData): void {
 	if (data.speed) renderAttr(topAttrs, "Speed", data.speed);
 
 	if (data.stats) {
-		block.createEl("div", { cls: "campaign-statblock-rule" });
+		block.createDiv({ cls: "campaign-statblock-rule" });
 		const table = block.createEl("table", { cls: "campaign-statblock-stats" });
 		const head = table.createEl("tr");
 		const body = table.createEl("tr");
@@ -98,7 +98,7 @@ function renderBlock(el: HTMLElement, data: StatblockData): void {
 	renderActionSection(block, "Legendary Actions", data.legendary_actions);
 
 	if (data.description) {
-		block.createEl("div", { cls: "campaign-statblock-rule" });
+		block.createDiv({ cls: "campaign-statblock-rule" });
 		block.createEl("p", { text: data.description, cls: "campaign-statblock-desc" });
 	}
 }

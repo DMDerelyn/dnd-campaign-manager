@@ -94,16 +94,16 @@ export class InitiativeTrackerView extends ItemView {
 		const bar = el.createDiv({ cls: "campaign-init-toolbar" });
 
 		const activeRoot = this.plugin.getActiveCampaignRoot();
-		bar.createEl("div", {
+		bar.createDiv({
 			text: `Campaign: ${activeRoot}`,
 			cls: "campaign-init-campaign-label",
 		});
 
 		const addPC = bar.createEl("button", { text: "Add PCs", cls: "campaign-init-btn" });
-		addPC.addEventListener("click", () => this.addPCsFromIndex());
+		addPC.addEventListener("click", () => void this.addPCsFromIndex());
 
 		const addNPC = bar.createEl("button", { text: "Add NPC", cls: "campaign-init-btn" });
-		addNPC.addEventListener("click", () => this.addNPCFromIndex());
+		addNPC.addEventListener("click", () => void this.addNPCFromIndex());
 
 		const addCustom = bar.createEl("button", { text: "Add Custom", cls: "campaign-init-btn" });
 		addCustom.addEventListener("click", () => this.addManualCombatant(false));
@@ -124,13 +124,13 @@ export class InitiativeTrackerView extends ItemView {
 		const prevBtn = info.createEl("button", { text: "\u25C0", cls: "campaign-init-nav" });
 		prevBtn.addEventListener("click", () => this.update(prevTurn(this.state)));
 
-		info.createEl("span", {
+		info.createSpan({
 			text: `Round ${this.state.round}`,
 			cls: "campaign-init-round-num",
 		});
 
 		if (cur) {
-			info.createEl("span", {
+			info.createSpan({
 				text: ` — ${cur.name}'s turn`,
 				cls: "campaign-init-current",
 			});
@@ -176,17 +176,19 @@ export class InitiativeTrackerView extends ItemView {
 			});
 		}
 
-		const nameEl = left.createEl("span", { text: c.name, cls: "campaign-init-name" });
+		const nameEl = left.createSpan({ text: c.name, cls: "campaign-init-name" });
 		if (c.entityPath) {
 			nameEl.addClass("campaign-init-name-link");
 			nameEl.addEventListener("click", () => {
 				const file = this.app.vault.getAbstractFileByPath(c.entityPath!);
-				if (file instanceof TFile) this.app.workspace.getLeaf(false).openFile(file);
+				if (file instanceof TFile) {
+					void this.app.workspace.getLeaf(false).openFile(file);
+				}
 			});
 		}
 
 		if (c.isPC) {
-			left.createEl("span", { text: " (PC)", cls: "campaign-init-tag" });
+			left.createSpan({ text: " (PC)", cls: "campaign-init-tag" });
 		}
 
 		const mid = row.createDiv({ cls: "campaign-init-row-mid" });
@@ -196,7 +198,7 @@ export class InitiativeTrackerView extends ItemView {
 		const fill = hpBar.createDiv({ cls: `campaign-init-hp-fill ${hpClass}` });
 		fill.style.setProperty("--hp-pct", `${pct}%`);
 
-		const hpText = mid.createEl("span", {
+		mid.createSpan({
 			text: `${c.hp.current}/${c.hp.max}${c.hp.temp > 0 ? ` +${c.hp.temp}t` : ""} HP | AC ${c.ac}`,
 			cls: "campaign-init-hp-text",
 		});
@@ -215,7 +217,7 @@ export class InitiativeTrackerView extends ItemView {
 		if (c.conditions.length > 0) {
 			const chips = right.createDiv({ cls: "campaign-init-conditions" });
 			for (const cond of c.conditions) {
-				const chip = chips.createEl("span", { text: cond, cls: "campaign-init-cond-chip" });
+				const chip = chips.createSpan({ text: cond, cls: "campaign-init-cond-chip" });
 				chip.addEventListener("click", () => this.update(toggleCondition(this.state, c.id, cond)));
 			}
 		}

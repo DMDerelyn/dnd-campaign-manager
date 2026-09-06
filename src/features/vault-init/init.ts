@@ -1,5 +1,5 @@
 import type { App } from "obsidian";
-import { Notice, TFile } from "obsidian";
+import { Notice } from "obsidian";
 import type { CampaignSettings } from "../../settings";
 import { ulid } from "../../core/ulid";
 import { resolveCampaignSubfolder } from "../../core/path-safety";
