@@ -1,4 +1,10 @@
-import { Notice, PluginSettingTab, Setting, App } from "obsidian";
+import {
+	Notice,
+	PluginSettingTab,
+	Setting,
+	type App,
+	type SettingDefinitionItem,
+} from "obsidian";
 import type CampaignPlugin from "./main";
 import type { EntityKind } from "./schemas";
 import { resolveCampaignSubfolder } from "./core/path-safety";
@@ -46,12 +52,193 @@ export const DEFAULT_SETTINGS: CampaignSettings = {
 
 const KINDS: EntityKind[] = ["pc", "npc", "quest", "location", "session", "faction", "item"];
 
+/** Read a dotted path (max two levels here) out of the settings object. */
+function getByPath(obj: Record<string, unknown>, path: string): unknown {
+	return path.split(".").reduce<unknown>((acc, part) => {
+		return acc && typeof acc === "object"
+			? (acc as Record<string, unknown>)[part]
+			: undefined;
+	}, obj);
+}
+
+/** Write a dotted path back into the settings object. */
+function setByPath(
+	obj: Record<string, unknown>,
+	path: string,
+	value: unknown,
+): void {
+	const parts = path.split(".");
+	const last = parts.pop();
+	if (last === undefined) return;
+	let cur = obj;
+	for (const part of parts) {
+		cur = cur[part] as Record<string, unknown>;
+	}
+	cur[last] = value;
+}
+
 export class CampaignSettingTab extends PluginSettingTab {
 	constructor(
 		app: App,
 		private plugin: CampaignPlugin,
 	) {
 		super(app, plugin);
+	}
+
+	/**
+	 * Declarative settings for Obsidian 1.13+ (makes the settings searchable).
+	 * {@link display} below is kept for older clients down to `minAppVersion`
+	 * and must stay in sync with this.
+	 */
+	getSettingDefinitions(): SettingDefinitionItem[] {
+		const p = this.plugin;
+		const tmpl = p.templater.isAvailable() ? "detected" : "not installed";
+		const dv = p.dataview.isAvailable() ? "detected" : "not installed";
+		const active = p.getActiveCampaignRoot();
+
+		return [
+			{
+				name: "Device support",
+				desc: "Optimized for desktop and tablet. Mobile handles quick additions and references, but canvas views and multi-panel layouts are not ideal on small touch screens.",
+			},
+			{
+				name: "Optional plugins",
+				desc: `Templater: ${tmpl} · Dataview: ${dv}. Dataview is recommended for entity queries in notes; Templater is no longer required.`,
+			},
+			{
+				type: "group",
+				heading: "Campaign folder",
+				items: [
+					{
+						name: "Active campaign",
+						desc: `Auto-detected from the current file, or the default: ${active}`,
+					},
+					{
+						name: "Default campaign root",
+						desc: "Used when no campaign file is open. New entities go here unless you're editing a file inside another campaign.",
+						control: {
+							type: "text",
+							key: "campaignRoot",
+							placeholder: "Campaigns/My Campaign",
+						},
+					},
+				],
+			},
+			{
+				type: "group",
+				heading: "Entity subfolders",
+				items: KINDS.map((kind) => ({
+					name: kind.toUpperCase(),
+					desc: `Subfolder for ${kind} entities, relative to the campaign root.`,
+					control: { type: "text", key: `folders.${kind}` },
+				})),
+			},
+			{
+				name: "Maps",
+				desc: "Subfolder where raw map images live. Must be a relative path inside the campaign folder.",
+				control: {
+					type: "text",
+					key: "mapsFolder",
+					validate: (value: string) => {
+						const trimmed = value.trim();
+						return trimmed && resolveCampaignSubfolder("_", trimmed) === null
+							? "Maps folder must be a relative path inside the campaign (no '..' or absolute paths)."
+							: undefined;
+					},
+				},
+			},
+			{
+				type: "group",
+				heading: "Validation",
+				items: [
+					{
+						name: "Strict validation",
+						desc: "Show a notice when opening a file with schema errors.",
+						control: { type: "toggle", key: "strictValidation" },
+					},
+					{
+						name: "Excluded folders",
+						desc: "Folders the plugin should ignore entirely — not indexed as entities, not shown in Campaign Issues. One folder per line. Template folders are always excluded.",
+						control: {
+							type: "textarea",
+							key: "excludedFolders",
+							placeholder: "Legacy\nImported/Old Vault\nArchive/2023",
+						},
+					},
+				],
+			},
+			{
+				name: "Auto-link on save",
+				desc: "Rewrite known entity names as wikilinks each time a file is saved. Off by default — use the command instead.",
+				control: { type: "toggle", key: "enableAutolinkOnSave" },
+			},
+			{
+				type: "group",
+				heading: "Agent integration",
+				items: [
+					{
+						name: "About",
+						desc: "Generate an AGENTS.md at the campaign root that explains the folder layout, frontmatter schema, and search recipes to a coding assistant. A hand-authored AGENTS.md or CLAUDE.md is never overwritten — a '.generated.md' sibling is written instead.",
+					},
+					{
+						name: "Also write CLAUDE.md",
+						desc: "Write a short CLAUDE.md next to AGENTS.md that points assistants at the full guide.",
+						control: { type: "toggle", key: "agentGuide.emitClaudeMd" },
+					},
+					{
+						name: "Generate agent guide now",
+						desc: "Write AGENTS.md (and CLAUDE.md, if enabled) for the active campaign.",
+						action: () => void this.plugin.generateAgentGuide(),
+					},
+					{
+						name: "Index scope",
+						desc: "All includes every entity. Player omits entities not marked visible to players.",
+						control: {
+							type: "dropdown",
+							key: "agentGuide.indexScope",
+							options: { all: "All", player: "Player" },
+						},
+					},
+					{
+						name: "Auto-export the campaign index",
+						desc: "Rewrite campaign-index.json a few seconds after the entity index changes. Off by default.",
+						control: { type: "toggle", key: "agentGuide.autoExportIndex" },
+					},
+					{
+						name: "Export campaign index now",
+						desc: "Write campaign-index.json for the active campaign.",
+						action: () => void this.plugin.exportCampaignIndex(),
+					},
+				],
+			},
+		];
+	}
+
+	getControlValue(key: string): unknown {
+		if (key === "excludedFolders") {
+			return this.plugin.settings.excludedFolders.join("\n");
+		}
+		return getByPath(this.plugin.settings as unknown as Record<string, unknown>, key);
+	}
+
+	async setControlValue(key: string, value: unknown): Promise<void> {
+		if (key === "excludedFolders") {
+			this.plugin.settings.excludedFolders = String(value)
+				.split(/\r?\n/)
+				.map((line) => line.trim())
+				.filter((line) => line.length > 0);
+			await this.plugin.saveSettings();
+			this.plugin.entityIndex.rebuildAll();
+			return;
+		}
+		const stored =
+			key === "campaignRoot" ||
+			key === "mapsFolder" ||
+			key.startsWith("folders.")
+				? String(value).trim()
+				: value;
+		setByPath(this.plugin.settings as unknown as Record<string, unknown>, key, stored);
+		await this.plugin.saveSettings();
 	}
 
 	display(): void {
