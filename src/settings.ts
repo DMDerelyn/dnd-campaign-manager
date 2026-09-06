@@ -13,6 +13,10 @@ export interface CampaignSettings {
 	agentGuide: {
 		/** Also write a short CLAUDE.md that points at AGENTS.md. */
 		emitClaudeMd: boolean;
+		/** Re-export campaign-index.json whenever the entity index changes. */
+		autoExportIndex: boolean;
+		/** `player` drops gm-only entities from the exported index. */
+		indexScope: "all" | "player";
 	};
 }
 
@@ -33,6 +37,8 @@ export const DEFAULT_SETTINGS: CampaignSettings = {
 	excludedFolders: [],
 	agentGuide: {
 		emitClaudeMd: false,
+		autoExportIndex: false,
+		indexScope: "all",
 	},
 };
 
@@ -184,6 +190,40 @@ export class CampaignSettingTab extends PluginSettingTab {
 			.setDesc("Write AGENTS.md (and CLAUDE.md, if enabled) for the active campaign.")
 			.addButton((b) =>
 				b.setButtonText("Generate").onClick(() => this.plugin.generateAgentGuide()),
+			);
+
+		containerEl.createEl("p", {
+			text: "The campaign index is a machine-readable campaign-index.json listing every entity (id, kind, name, path, aliases, visibility, tags, links) so an assistant can load one file instead of scanning the vault. It is written to the active campaign (the one containing the open file, or the default).",
+			cls: "setting-item-description",
+		});
+		new Setting(containerEl)
+			.setName("Index scope")
+			.setDesc("'all' includes every entity. 'player' omits entities that are GM-only (visibility not set to player or both).")
+			.addDropdown((d) =>
+				d
+					.addOption("all", "all")
+					.addOption("player", "player")
+					.setValue(this.plugin.settings.agentGuide.indexScope)
+					.onChange(async (v) => {
+						this.plugin.settings.agentGuide.indexScope =
+							v === "player" ? "player" : "all";
+						await this.plugin.saveSettings();
+					}),
+			);
+		new Setting(containerEl)
+			.setName("Auto-export the campaign index")
+			.setDesc("Rewrite campaign-index.json a few seconds after the entity index changes. Off by default.")
+			.addToggle((t) =>
+				t.setValue(this.plugin.settings.agentGuide.autoExportIndex).onChange(async (v) => {
+					this.plugin.settings.agentGuide.autoExportIndex = v;
+					await this.plugin.saveSettings();
+				}),
+			);
+		new Setting(containerEl)
+			.setName("Export campaign index now")
+			.setDesc("Write campaign-index.json for the active campaign.")
+			.addButton((b) =>
+				b.setButtonText("Export").onClick(() => this.plugin.exportCampaignIndex()),
 			);
 
 	}

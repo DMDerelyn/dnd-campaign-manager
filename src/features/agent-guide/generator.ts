@@ -147,6 +147,11 @@ export function buildAgentGuide(input: AgentGuideInput): string {
 
 	p("## Search recipes");
 	p();
+	p("If `campaign-index.json` exists at the campaign root, read it first: it is a");
+	p("generated list of every entity (id, kind, name, path, aliases, visibility,");
+	p("tags, links) and is faster than scanning notes. Regenerate it with the");
+	p('"Export campaign index" command.');
+	p();
 	p("Exact, structural lookups with ripgrep:");
 	p();
 	p("```sh");
