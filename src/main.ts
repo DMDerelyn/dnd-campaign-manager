@@ -70,6 +70,11 @@ import {
 	TimelineView,
 	TIMELINE_VIEW_TYPE,
 } from "./features/timeline/timeline-view";
+import {
+	AGENT_GUIDE_MARKER_PREFIX,
+	buildAgentGuide,
+	buildAssistantPointer,
+} from "./features/agent-guide/generator";
 
 export default class CampaignPlugin extends Plugin {
 	settings!: CampaignSettings;
@@ -157,6 +162,11 @@ export default class CampaignPlugin extends Plugin {
 			delete (saved as Record<string, unknown>)["prototype"];
 		}
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, saved);
+		this.settings.agentGuide = Object.assign(
+			{},
+			DEFAULT_SETTINGS.agentGuide,
+			this.settings.agentGuide,
+		);
 	}
 
 	async saveSettings(): Promise<void> {
@@ -354,6 +364,11 @@ export default class CampaignPlugin extends Plugin {
 			callback: () => this.activateView(TIMELINE_VIEW_TYPE),
 		});
 		this.addCommand({
+			id: "generate-agent-guide",
+			name: "Generate agent guide",
+			callback: () => this.generateAgentGuide(),
+		});
+		this.addCommand({
 			id: "secrets-add",
 			name: "Secrets: Add a secret or clue to the pool",
 			callback: async () => {
@@ -459,6 +474,93 @@ export default class CampaignPlugin extends Plugin {
 		new Notice(`Auto-link: ${plan.replacements} replacement(s).`);
 	}
 
+	/**
+	 * Write (or refresh) AGENTS.md at the active campaign root so a coding
+	 * assistant can learn the folder layout, frontmatter schema, and search
+	 * recipes. Optionally also writes a short CLAUDE.md pointer.
+	 *
+	 * Only files this plugin previously generated (identified by the marker
+	 * comment) are overwritten in place. If a hand-authored AGENTS.md or
+	 * CLAUDE.md already exists it is left untouched and the content is written
+	 * to a `*.generated.md` sibling instead. Both destinations are resolved
+	 * before either is written so a mid-run failure can't half-apply the pair.
+	 */
+	async generateAgentGuide(): Promise<void> {
+		const root = this.getActiveCampaignRoot();
+		try {
+			const guide = buildAgentGuide({
+				campaignRoot: root,
+				folders: this.settings.folders,
+				dataviewAvailable: this.dataview.isAvailable(),
+			});
+
+			const plan = [await this.resolveGuideTarget(`${root}/AGENTS.md`, guide)];
+			if (this.settings.agentGuide.emitClaudeMd) {
+				const pointer = buildAssistantPointer(basename(plan[0].path));
+				plan.push(
+					await this.resolveGuideTarget(`${root}/CLAUDE.md`, pointer),
+				);
+			}
+
+			const written: string[] = [];
+			let redirected = false;
+			for (const target of plan) {
+				await this.writeCampaignFile(target.path, target.content);
+				written.push(target.path);
+				redirected ||= target.redirected;
+			}
+
+			new Notice(
+				redirected
+					? `Agent guide written to ${written.join(", ")}. An existing file was left untouched because this plugin did not create it.`
+					: `Agent guide written: ${written.join(", ")}`,
+			);
+			const first = this.app.vault.getAbstractFileByPath(plan[0].path);
+			if (first instanceof TFile) {
+				await this.app.workspace.getLeaf(false).openFile(first);
+			}
+		} catch (err) {
+			console.error("generateAgentGuide:", err);
+			new Notice(`Agent guide failed: ${(err as Error).message}`);
+		}
+	}
+
+	/**
+	 * Decide where a generated file should go without writing anything. Returns
+	 * the original path when the file is absent or plugin-owned, or a
+	 * `*.generated.md` sibling when a hand-authored file is in the way.
+	 */
+	private async resolveGuideTarget(
+		path: string,
+		content: string,
+	): Promise<{ path: string; content: string; redirected: boolean }> {
+		const norm = normalizePath(path);
+		const existing = this.app.vault.getAbstractFileByPath(norm);
+		if (existing instanceof TFile) {
+			const current = await this.app.vault.read(existing);
+			if (!current.includes(AGENT_GUIDE_MARKER_PREFIX)) {
+				return {
+					path: normalizePath(norm.replace(/\.md$/i, ".generated.md")),
+					content,
+					redirected: true,
+				};
+			}
+		}
+		return { path: norm, content, redirected: false };
+	}
+
+	private async writeCampaignFile(path: string, content: string): Promise<TFile> {
+		const norm = normalizePath(path);
+		const slash = norm.lastIndexOf("/");
+		if (slash > 0) await this.ensureFolder(norm.slice(0, slash));
+		const existing = this.app.vault.getAbstractFileByPath(norm);
+		if (existing instanceof TFile) {
+			await this.app.vault.modify(existing, content);
+			return existing;
+		}
+		return this.app.vault.create(norm, content);
+	}
+
 	private registerVaultListeners(): void {
 		for (const ref of wireEntityIndex(this.app, this.entityIndex)) {
 			this.registerEvent(ref);
@@ -521,6 +623,11 @@ export default class CampaignPlugin extends Plugin {
 			modal.open();
 		});
 	}
+}
+
+function basename(path: string): string {
+	const i = path.lastIndexOf("/");
+	return i === -1 ? path : path.slice(i + 1);
 }
 
 function sanitizeFilename(name: string): string {
