@@ -1,6 +1,6 @@
-# D&D Campaign Manager
+# Campaign Codex
 
-Plan and run D&D 5e campaigns entirely inside Obsidian. One plugin replaces a stack of single-purpose tools: typed entity management, a session runner dashboard, an in-house initiative tracker, an interactive map with fog of war, and more.
+Plan and run tabletop RPG campaigns entirely inside Obsidian. One plugin replaces a stack of single-purpose tools: typed entity management, a session runner dashboard, an in-house initiative tracker, an interactive map with fog of war, and more.
 
 > **Device support:** Optimized for desktop and tablet use. Mobile (phone) is usable for quick additions and references — slash commands, secrets, quick notes, statblock reading, quest board, timeline — but canvas-based views (Campaign Map, NPC Relationship Graph) are not an ideal experience on small touch screens. Multi-panel layouts like the Session Runner also work best with a wider display.
 
@@ -50,7 +50,7 @@ Templates/
     item.md
 ```
 
-**D&D Example:** You're starting *Waterdeep: Dragon Heist*. Run the command, type "Waterdeep: Dragon Heist", and you've got a fully organized vault ready to fill with NPCs, locations, and session prep.
+**Example:** You're starting *Waterdeep: Dragon Heist*. Run the command, type "Waterdeep: Dragon Heist", and you've got a fully organized vault ready to fill with NPCs, locations, and session prep.
 
 ---
 
@@ -60,7 +60,7 @@ Templates/
 
 Each command prompts you for a name and creates a fully structured markdown file with frontmatter fields tailored to that entity type.
 
-**D&D Example — Creating an NPC:**
+**Example — Creating an NPC:**
 Run `Campaign: Create NPC` and type "Volothamp Geddarm". The plugin creates `Campaign/NPCs/Volothamp Geddarm.md` with:
 
 ```yaml
@@ -102,7 +102,7 @@ Type `/` in any note to access quick commands. A suggestion popup appears as you
 
 **Tip:** If you type `/add npc` without a name, the plugin will prompt you for one instead of creating a dead link.
 
-**D&D Example — Mid-session notes:**
+**Example — Mid-session notes:**
 You're running a session and the party meets a new NPC. In your session note, type:
 
 ```
@@ -142,7 +142,7 @@ The result is inserted inline: `` `1d20 = 15` (15) ``
 
 Scans your note for entity names and wraps them in `[[wikilinks]]`. Knows all entity names and aliases. Respects existing links, code blocks, and frontmatter — won't double-link or break formatting.
 
-**D&D Example:** You write a session note with plain text:
+**Example:** You write a session note with plain text:
 
 ```markdown
 The party met Goruk at the Yawning Portal. He told them about the Zhentarim's plot.
@@ -162,7 +162,7 @@ The party met [[Goruk]] at the [[Yawning Portal]]. He told them about the [[Zhen
 
 A dedicated panel that groups all your quests by state: **Hook** (rumors the party hasn't engaged with), **Active**, **Completed**, **Failed**, **Abandoned**.
 
-**D&D Example:** You've created quests like "Find the Stone of Golorr" (active), "Rescue Floon" (completed), and "Investigate the Fireball" (hook). The Quest Board shows them grouped and color-coded. Click any quest to jump to its note.
+**Example:** You've created quests like "Find the Stone of Golorr" (active), "Rescue Floon" (completed), and "Investigate the Fireball" (hook). The Quest Board shows them grouped and color-coded. Click any quest to jump to its note.
 
 **Quest states** are controlled by the `state:` field in quest frontmatter. Update it to `active`, `completed`, `failed`, or `abandoned` and the board updates automatically.
 
@@ -174,7 +174,7 @@ A dedicated panel that groups all your quests by state: **Hook** (rumors the par
 
 Shows all entity files with schema validation errors — missing required fields, wrong types, invalid values. Like a linter for your campaign notes.
 
-**D&D Example:** You accidentally set an NPC's `disposition: grumpy` (not a valid value — should be hostile/unfriendly/neutral/friendly/allied). The diagnostics panel flags it with the file, field, and error message. Click the filename to jump there and fix it.
+**Example:** You accidentally set an NPC's `disposition: grumpy` (not a valid value — should be hostile/unfriendly/neutral/friendly/allied). The diagnostics panel flags it with the file, field, and error message. Click the filename to jump there and fix it.
 
 ---
 
@@ -189,10 +189,10 @@ A full combat tracker built into Obsidian. No external dependencies.
 - **Add NPCs manually** — Name, HP, AC, initiative
 - **Roll initiative** — "Roll All NPCs" button, or edit individual values
 - **Track HP** — +1/+5/-1/-5 buttons, temp HP support, damage absorbs temp HP first
-- **Conditions** — All 16 D&D 5e conditions (blinded, charmed, frightened, etc.) plus Concentrating and Exhaustion
+- **Conditions** — All 16 standard 5e conditions (blinded, charmed, frightened, etc.) plus Concentrating and Exhaustion
 - **Turn tracking** — Round counter, current turn highlighted, forward/back navigation
 
-**D&D Example:** The party is ambushed by 3 goblins and a bugbear.
+**Example:** The party is ambushed by 3 goblins and a bugbear.
 
 1. Click **Add PCs** — your 4 PCs appear with their stats from the entity index
 2. Click **Add NPC** four times for the enemies (Goblin 1, Goblin 2, Goblin 3, Bugbear)
@@ -218,7 +218,7 @@ Opens a three-panel layout optimized for running a live game session:
 - **NPC panel** — Quick access to all campaign NPCs with disposition badges
 - **Quick Note capture** — Type in the text box and hit Enter to append a timestamped line to the session log
 
-**D&D Example:** Session 12 of your campaign. You:
+**Example:** Session 12 of your campaign. You:
 1. Run "Start Session" from the command palette
 2. Pick "Session 12 - The Dragon's Lair"
 3. Click "Open in Editor" to get your session note in the center pane
@@ -241,7 +241,7 @@ A read-only character sheet view that displays ability scores, combat stats, spe
 
 **Fallback:** If the URL doesn't work (character is private or DDB changes their API), paste the character's JSON export from the Beyond20 browser extension instead.
 
-**D&D Example:** Your player just leveled up on DDB. Paste their character URL into the importer and the PC file updates with new HP, spell slots, and ability scores.
+**Example:** Your player just leveled up on DDB. Paste their character URL into the importer and the PC file updates with new HP, spell slots, and ability scores.
 
 ---
 
@@ -255,7 +255,7 @@ A canvas-based visual graph showing NPCs and factions as nodes, with edges drawn
 - **Double-click** a node to open that entity's note
 - **Color-coded edges:** green = ally, red = enemy, gray = other relationships
 
-**D&D Example:** You've built out the Waterdeep faction network — Zhentarim, Xanathar Guild, Harpers, Lords' Alliance, Force Grey. Open the graph and instantly see who's allied, who's at war, and which NPCs belong to which faction. Drag the Xanathar node next to the Zhentarim to visually group the antagonists.
+**Example:** You've built out the Waterdeep faction network — Zhentarim, Xanathar Guild, Harpers, Lords' Alliance, Force Grey. Open the graph and instantly see who's allied, who's at war, and which NPCs belong to which faction. Drag the Xanathar node next to the Zhentarim to visually group the antagonists.
 
 ---
 
@@ -278,7 +278,7 @@ An interactive map view with fog of war and pin placement.
 - **Navigate pins:** Double-click an existing pin to open its linked entity
 - **Save:** Click "Save Fog/Pins" to persist revealed areas and pins to the location's frontmatter
 
-**D&D Example:** You have a dungeon map. As the party explores, toggle fog reveal and paint the rooms they've entered. Place pins labeled "Trapped Door", "Boss Room", "Secret Passage". The fog state saves to frontmatter so it persists between sessions.
+**Example:** You have a dungeon map. As the party explores, toggle fog reveal and paint the rooms they've entered. Place pins labeled "Trapped Door", "Boss Room", "Secret Passage". The fog state saves to frontmatter so it persists between sessions.
 
 ---
 
@@ -386,13 +386,13 @@ owner: "[[Elara]]"
 
 A Lazy DM pool of unrevealed plot threads for the current campaign. Stored as plain markdown at `Campaigns/<name>/Secrets.md` with GFM task-list syntax so you can also check boxes manually.
 
-**D&D Example:** During session prep you brainstorm 10 secrets the players could uncover. Run **"Add a secret or clue"** for each: *"The innkeeper is a werewolf"*, *"The map was forged by the BBEG"*. During play, when the party discovers one, run **"Reveal a secret"** — it moves from the Unrevealed section to Revealed, tagged with the current session. Any unrevealed secrets roll forward to the next session automatically.
+**Example:** During session prep you brainstorm 10 secrets the players could uncover. Run **"Add a secret or clue"** for each: *"The innkeeper is a werewolf"*, *"The map was forged by the BBEG"*. During play, when the party discovers one, run **"Reveal a secret"** — it moves from the Unrevealed section to Revealed, tagged with the current session. Any unrevealed secrets roll forward to the next session automatically.
 
 ---
 
 ### Statblock Rendering
 
-Inline D&D 5e-style monster statblocks via a `campaign-statblock` code block. DM-friendly YAML format, no external plugin dependency.
+Inline 5e-style monster statblocks via a `campaign-statblock` code block. DM-friendly YAML format, no external plugin dependency.
 
 **Usage:**
 
@@ -444,7 +444,7 @@ A chronological `ItemView` that aggregates every `## Session log` bullet from ev
 - **Click a session title** to jump to the session note.
 - Auto-refreshes when you switch campaigns or when the entity index changes.
 
-**D&D Example:** Halfway through a campaign you ask "wait, when did the party first meet Strahd?" Open the Timeline, type `Strahd` in the filter, scroll to the first match — it's right there with a session link.
+**Example:** Halfway through a campaign you ask "wait, when did the party first meet Strahd?" Open the Timeline, type `Strahd` in the filter, scroll to the first match — it's right there with a session link.
 
 ---
 
