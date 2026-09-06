@@ -198,11 +198,11 @@ export class CampaignSettingTab extends PluginSettingTab {
 		});
 		new Setting(containerEl)
 			.setName("Index scope")
-			.setDesc("'all' includes every entity. 'player' omits entities that are GM-only (visibility not set to player or both).")
+			.setDesc("All includes every entity. Player omits entities not marked visible to players (visibility set to player or both).")
 			.addDropdown((d) =>
 				d
-					.addOption("all", "all")
-					.addOption("player", "player")
+					.addOption("all", "All")
+					.addOption("player", "Player")
 					.setValue(this.plugin.settings.agentGuide.indexScope)
 					.onChange(async (v) => {
 						this.plugin.settings.agentGuide.indexScope =

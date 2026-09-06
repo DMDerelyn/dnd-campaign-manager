@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "tsc --noEmit && node esbuild.config.mjs production",
-    "test": "node --import tsx --test \"src/**/*.test.ts\""
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "lint": "eslint src"
   },
   "keywords": ["obsidian", "ttrpg", "dnd", "5e"],
   "author": "DMDerelyn",
@@ -14,10 +15,13 @@
   "devDependencies": {
     "@types/node": "^20.11.0",
     "esbuild": "^0.25.0",
+    "eslint": "^9.39.5",
+    "eslint-plugin-obsidianmd": "^0.4.2",
     "obsidian": "latest",
     "tslib": "^2.6.2",
     "tsx": "^4.23.13",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "typescript-eslint": "^8.69.0"
   },
   "dependencies": {
     "zod": "~3.25.76"

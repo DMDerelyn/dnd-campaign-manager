@@ -11,3 +11,6 @@ sources/
 # Local review artifacts
 .claude-reviews/
 .codex-reviews/
+
+# Local design notes
+plans/

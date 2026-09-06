@@ -17,30 +17,58 @@ export interface FieldDescriptor {
 export function describeObjectSchema(schema: z.ZodTypeAny): FieldDescriptor[] {
 	const shape = unwrapToObjectShape(schema);
 	if (!shape) return [];
-	return Object.entries(shape).map(([name, raw]) =>
-		describeField(name, raw as z.ZodTypeAny),
-	);
+	return Object.entries(shape).map(([name, raw]) => describeField(name, raw));
 }
 
-// Zod's internal `_def` shapes are not in its public types; this module reads
-// them deliberately and defensively.
-/* eslint-disable @typescript-eslint/no-explicit-any */
+// --- Minimal structural views of Zod v3 internals ---------------------------
+// `_def` is not part of Zod's public types. Rather than reach for `any`, this
+// module models just the fields it reads and narrows access through `defOf`.
 
-function unwrapToObjectShape(
-	schema: z.ZodTypeAny,
-): Record<string, z.ZodTypeAny> | null {
-	let cur: any = schema;
-	for (let i = 0; i < 10 && cur?._def; i++) {
-		const def = cur._def;
+type ZodRawShape = Record<string, z.ZodTypeAny>;
+
+interface ZodCheck {
+	kind: string;
+	value?: number;
+	inclusive?: boolean;
+	regex?: RegExp;
+}
+
+interface ZodDefLike {
+	typeName?: string;
+	innerType?: z.ZodTypeAny;
+	schema?: z.ZodTypeAny;
+	type?: z.ZodTypeAny;
+	valueType?: z.ZodTypeAny;
+	shape?: (() => ZodRawShape) | ZodRawShape;
+	checks?: ZodCheck[];
+	values?: string[];
+	value?: unknown;
+	options?: z.ZodTypeAny[];
+	defaultValue?: () => unknown;
+}
+
+function defOf(schema: z.ZodTypeAny | undefined): ZodDefLike | undefined {
+	if (!schema || typeof schema !== "object") return undefined;
+	const def = (schema as { _def?: unknown })._def;
+	// Every field of ZodDefLike is optional, so a plain object satisfies it.
+	return def && typeof def === "object" ? def : undefined;
+}
+
+function unwrapToObjectShape(schema: z.ZodTypeAny): ZodRawShape | null {
+	let cur: z.ZodTypeAny | undefined = schema;
+	for (let i = 0; i < 10; i++) {
+		const def = defOf(cur);
+		if (!def) break;
 		if (def.typeName === "ZodObject") {
-			const shape = typeof def.shape === "function" ? def.shape() : def.shape;
-			return shape as Record<string, z.ZodTypeAny>;
+			return typeof def.shape === "function"
+				? def.shape()
+				: (def.shape ?? null);
 		}
 		if (def.typeName === "ZodEffects" && def.schema) {
 			cur = def.schema;
 			continue;
 		}
-		// Transparent wrappers: keep unwrapping toward the object.
+		// Transparent wrapper: keep unwrapping toward the object.
 		if (def.typeName === "ZodBranded" && def.type) {
 			cur = def.type;
 			continue;
@@ -55,12 +83,13 @@ function unwrapToObjectShape(
 }
 
 function describeField(name: string, schema: z.ZodTypeAny): FieldDescriptor {
-	let cur: any = schema;
+	let cur: z.ZodTypeAny | undefined = schema;
 	let required = true;
 	let defaultValue: string | undefined;
 
-	for (let i = 0; i < 12 && cur?._def; i++) {
-		const def = cur._def;
+	for (let i = 0; i < 12; i++) {
+		const def = defOf(cur);
+		if (!def) break;
 		if (def.typeName === "ZodOptional") {
 			required = false;
 			cur = def.innerType;
@@ -73,7 +102,8 @@ function describeField(name: string, schema: z.ZodTypeAny): FieldDescriptor {
 		if (def.typeName === "ZodDefault") {
 			required = false;
 			try {
-				defaultValue = JSON.stringify(def.defaultValue());
+				const value = def.defaultValue?.();
+				defaultValue = value === undefined ? undefined : JSON.stringify(value);
 			} catch {
 				defaultValue = undefined;
 			}
@@ -104,22 +134,24 @@ function describeField(name: string, schema: z.ZodTypeAny): FieldDescriptor {
 	return descriptor;
 }
 
-function typeName(schema: any): string {
-	const def = schema?._def;
+function typeName(schema: z.ZodTypeAny | undefined): string {
+	const def = defOf(schema);
 	if (!def) return "unknown";
 	switch (def.typeName) {
 		case "ZodString":
 			return stringType(def);
 		case "ZodNumber": {
 			const checks = def.checks ?? [];
-			const base = checks.some((c: any) => c.kind === "int")
-				? "integer"
-				: "number";
+			const base = checks.some((c) => c.kind === "int") ? "integer" : "number";
 			let lo: string | undefined;
 			let hi: string | undefined;
 			for (const c of checks) {
-				if (c.kind === "min") lo = `${c.inclusive === false ? ">" : ">="} ${c.value}`;
-				if (c.kind === "max") hi = `${c.inclusive === false ? "<" : "<="} ${c.value}`;
+				if (c.kind === "min") {
+					lo = `${c.inclusive === false ? ">" : ">="} ${c.value}`;
+				}
+				if (c.kind === "max") {
+					hi = `${c.inclusive === false ? "<" : "<="} ${c.value}`;
+				}
 			}
 			if (lo && hi) return `${base} (${lo}, ${hi})`;
 			if (lo) return `${base} (${lo})`;
@@ -129,7 +161,7 @@ function typeName(schema: any): string {
 		case "ZodBoolean":
 			return "boolean";
 		case "ZodEnum":
-			return `enum: ${(def.values as string[]).join(" | ")}`;
+			return `enum: ${(def.values ?? []).join(" | ")}`;
 		case "ZodNativeEnum":
 			return "enum";
 		case "ZodLiteral":
@@ -144,8 +176,7 @@ function typeName(schema: any): string {
 			return "tuple";
 		case "ZodUnion":
 		case "ZodDiscriminatedUnion": {
-			const opts = (def.options as any[]) ?? [];
-			const names = opts.map((o) => typeName(o));
+			const names = (def.options ?? []).map((o) => typeName(o));
 			return names.length ? names.join(" | ") : "union";
 		}
 		case "ZodEffects":
@@ -167,7 +198,7 @@ function typeName(schema: any): string {
 	}
 }
 
-function stringType(def: any): string {
+function stringType(def: ZodDefLike): string {
 	for (const c of def.checks ?? []) {
 		if (c.kind !== "regex") continue;
 		const src = String(c.regex ?? "");

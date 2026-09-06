@@ -160,7 +160,7 @@ export function buildAgentGuide(input: AgentGuideInput): string {
 	p("# find an entity by name or alias");
 	p(`rg -n 'Volothamp' ${shQuote(campaignRoot)}`);
 	p("# notes safe to show players — everything else is GM-only");
-	p(`rg -l '^visibility: *\"?(player|both)\"?$' ${shQuote(campaignRoot)}`);
+	p(`rg -l '^visibility: *"?(player|both)"?$' ${shQuote(campaignRoot)}`);
 	p("# quests, with their state (a quest with no 'state' is 'hook' = not started)");
 	p(`rg -n '^state:' ${shQuote(`${campaignRoot}/${folder("quest")}`)}`);
 	p("```");

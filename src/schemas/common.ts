@@ -14,7 +14,7 @@ export type EntityKind = z.infer<typeof EntityKind>;
 export const Visibility = z.enum(["gm", "player", "both"]);
 export type Visibility = z.infer<typeof Visibility>;
 
-const WikilinkRegex = /^\[\[[^\[\]]+\]\]$/;
+const WikilinkRegex = /^\[\[[^[\]]+\]\]$/;
 export const Wikilink = z
 	.string()
 	.regex(WikilinkRegex, "must be a wikilink of the form [[Target]]");
