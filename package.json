@@ -1,7 +1,7 @@
 {
   "name": "dnd-campaign-manager",
-  "version": "0.1.3",
-  "description": "D&D 5e campaign plugin for Obsidian",
+  "version": "0.1.4",
+  "description": "Tabletop RPG campaign plugin for Obsidian",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
@@ -9,7 +9,7 @@
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
     "lint": "eslint src"
   },
-  "keywords": ["obsidian", "ttrpg", "dnd", "5e"],
+  "keywords": ["obsidian", "ttrpg", "rpg", "campaign"],
   "author": "DMDerelyn",
   "license": "MIT",
   "devDependencies": {
