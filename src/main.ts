@@ -75,6 +75,11 @@ import {
 	buildAgentGuide,
 	buildAssistantPointer,
 } from "./features/agent-guide/generator";
+import {
+	buildCampaignIndex,
+	serializeCampaignIndex,
+	type IndexedEntityInput,
+} from "./features/agent-guide/index-export";
 
 export default class CampaignPlugin extends Plugin {
 	settings!: CampaignSettings;
@@ -84,6 +89,10 @@ export default class CampaignPlugin extends Plugin {
 	templater!: TemplaterBridge;
 	dataview!: DataviewBridge;
 	private normalizationTimers = new Set<number>();
+	private autoIndexTimer: number | null = null;
+	private indexExportInFlight = false;
+	private indexExportQueued = false;
+	private unloaded = false;
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
@@ -144,14 +153,23 @@ export default class CampaignPlugin extends Plugin {
 		this.registerCommands();
 		this.registerVaultListeners();
 
+		this.register(
+			this.entityIndex.onChange(() => this.scheduleAutoIndexExport()),
+		);
+
 		this.app.workspace.onLayoutReady(() => {
 			this.entityIndex.rebuildAll();
 		});
 	}
 
 	async onunload(): Promise<void> {
+		this.unloaded = true;
 		for (const id of this.normalizationTimers) window.clearTimeout(id);
 		this.normalizationTimers.clear();
+		if (this.autoIndexTimer !== null) {
+			window.clearTimeout(this.autoIndexTimer);
+			this.autoIndexTimer = null;
+		}
 	}
 
 	async loadSettings(): Promise<void> {
@@ -369,6 +387,11 @@ export default class CampaignPlugin extends Plugin {
 			callback: () => this.generateAgentGuide(),
 		});
 		this.addCommand({
+			id: "export-campaign-index",
+			name: "Export campaign index (JSON)",
+			callback: () => this.exportCampaignIndex(),
+		});
+		this.addCommand({
 			id: "secrets-add",
 			name: "Secrets: Add a secret or clue to the pool",
 			callback: async () => {
@@ -526,9 +549,88 @@ export default class CampaignPlugin extends Plugin {
 	}
 
 	/**
+	 * Write `campaign-index.json` at the active campaign root: a flat, sorted
+	 * list of every entity (id, kind, name, path, aliases, visibility, tags,
+	 * summary, wikilink targets) so an assistant can load one file instead of
+	 * scanning the whole vault. `showNotice` is false for the auto-export path.
+	 */
+	async exportCampaignIndex(showNotice = true): Promise<void> {
+		// Single-flight: a request that lands while a write is running is
+		// remembered and re-run once the current write finishes, so the last
+		// change is never lost.
+		if (this.indexExportInFlight) {
+			this.indexExportQueued = true;
+			return;
+		}
+		this.indexExportInFlight = true;
+		try {
+			do {
+				this.indexExportQueued = false;
+				const root = this.getActiveCampaignRoot();
+				const entities = this.collectCampaignEntities(root);
+				const index = buildCampaignIndex(entities, {
+					campaignRoot: root,
+					scope: this.settings.agentGuide.indexScope,
+				});
+				const target = await this.resolveGuideTarget(
+					`${root}/campaign-index.json`,
+					serializeCampaignIndex(index),
+				);
+				if (this.unloaded) return;
+				await this.writeCampaignFile(target.path, target.content);
+				if (showNotice) {
+					new Notice(
+						target.redirected
+							? `Wrote ${target.path} (an existing campaign-index.json this plugin did not create was left untouched).`
+							: `Campaign index written: ${target.path} (${index.entity_count} entities, scope: ${index.scope}).`,
+					);
+				}
+			} while (this.indexExportQueued && !this.unloaded);
+		} catch (err) {
+			console.error("exportCampaignIndex:", err);
+			if (showNotice) {
+				new Notice(`Campaign index export failed: ${(err as Error).message}`);
+			}
+		} finally {
+			this.indexExportInFlight = false;
+		}
+	}
+
+	private collectCampaignEntities(root: string): IndexedEntityInput[] {
+		const prefix = `${root}/`;
+		const kinds = Object.keys(this.settings.folders) as EntityKind[];
+		const out: IndexedEntityInput[] = [];
+		for (const kind of kinds) {
+			for (const e of this.entityIndex.byKind(kind)) {
+				if (!e.path.startsWith(prefix)) continue;
+				out.push({
+					path: e.path,
+					id: e.id,
+					kind: e.kind,
+					name: e.name,
+					// the index stores `name` separately; keep only real aliases
+					aliases: e.aliases.filter((a) => a !== e.name),
+					frontmatter: e.frontmatter,
+				});
+			}
+		}
+		return out;
+	}
+
+	/** Debounced re-export triggered by entity-index changes, when enabled. */
+	private scheduleAutoIndexExport(): void {
+		if (!this.settings.agentGuide.autoExportIndex) return;
+		if (this.autoIndexTimer !== null) window.clearTimeout(this.autoIndexTimer);
+		this.autoIndexTimer = window.setTimeout(() => {
+			this.autoIndexTimer = null;
+			void this.exportCampaignIndex(false);
+		}, 3000);
+	}
+
+	/**
 	 * Decide where a generated file should go without writing anything. Returns
 	 * the original path when the file is absent or plugin-owned, or a
-	 * `*.generated.md` sibling when a hand-authored file is in the way.
+	 * `*.generated.<ext>` sibling when a hand-authored file is in the way.
 	 */
 	private async resolveGuideTarget(
 		path: string,
@@ -539,11 +641,13 @@ export default class CampaignPlugin extends Plugin {
 		if (existing instanceof TFile) {
 			const current = await this.app.vault.read(existing);
 			if (!current.includes(AGENT_GUIDE_MARKER_PREFIX)) {
-				return {
-					path: normalizePath(norm.replace(/\.md$/i, ".generated.md")),
-					content,
-					redirected: true,
-				};
+				// Insert `.generated` before the extension, or append it when the
+				// target has none, so the redirect path is always distinct from
+				// the hand-authored file.
+				const redirect = /(\.[^./]+)$/.test(norm)
+					? norm.replace(/(\.[^./]+)$/, ".generated$1")
+					: `${norm}.generated`;
+				return { path: normalizePath(redirect), content, redirected: true };
 			}
 		}
 		return { path: norm, content, redirected: false };
