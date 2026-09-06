@@ -10,6 +10,7 @@ export interface CampaignSettings {
 	enableAutolinkOnSave: boolean;
 	strictValidation: boolean;
 	excludedFolders: string[];
+	questOrder: Record<string, number>;
 	agentGuide: {
 		/** Also write a short CLAUDE.md that points at AGENTS.md. */
 		emitClaudeMd: boolean;
@@ -35,6 +36,7 @@ export const DEFAULT_SETTINGS: CampaignSettings = {
 	enableAutolinkOnSave: false,
 	strictValidation: false,
 	excludedFolders: [],
+	questOrder: {},
 	agentGuide: {
 		emitClaudeMd: false,
 		autoExportIndex: false,

@@ -63,10 +63,11 @@ export class SessionRunnerView extends ItemView {
 		const controls = header.createDiv({ cls: "campaign-sr-controls" });
 		const pickBtn = controls.createEl("button", { text: "Pick Session", cls: "campaign-init-btn" });
 		pickBtn.addEventListener("click", async () => {
-			const sessions = this.plugin.entityIndex.byKind("session");
+			const sessions = this.plugin.byKindInActiveCampaign("session");
 			if (sessions.length === 0) {
+				const root = this.plugin.getActiveCampaignRoot();
 				new Notice(
-					"No sessions found. Create one with Campaign: Create Session, or check Campaign Issues for validation errors.",
+					`No sessions in active campaign (${root}). Create one with Campaign: Create Session.`,
 				);
 				return;
 			}
@@ -74,7 +75,8 @@ export class SessionRunnerView extends ItemView {
 				this.app,
 				this.plugin.entityIndex,
 				["session"],
-				"Pick a session\u2026",
+				"Pick a session…",
+				this.plugin.getActiveCampaignRoot(),
 			);
 			const picked = await modal.pick();
 			if (!picked) return;
@@ -127,6 +129,7 @@ export class SessionRunnerView extends ItemView {
 						this.plugin.entityIndex,
 						["quest"],
 						"Pick a quest…",
+						this.plugin.getActiveCampaignRoot(),
 					).pick();
 					if (!picked) return;
 					await this.appendToSessionLog(`- Mentioned quest [[${picked.name}]]`);
@@ -298,7 +301,7 @@ export class SessionRunnerView extends ItemView {
 	}
 
 	private renderNPCPanel(el: HTMLElement): void {
-		const npcs = this.plugin.entityIndex.byKind("npc");
+		const npcs = this.plugin.byKindInActiveCampaign("npc");
 		if (npcs.length === 0) return;
 
 		const panel = el.createDiv({ cls: "campaign-sr-npcs" });

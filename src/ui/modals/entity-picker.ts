@@ -11,7 +11,8 @@ export class EntityPickerModal extends FuzzySuggestModal<IndexedEntity> {
 		app: App,
 		private index: EntityIndex,
 		private kinds?: EntityKind[],
-		placeholder = "Pick a campaign entity\u2026",
+		placeholder = "Pick a campaign entity…",
+		private campaignRoot?: string,
 	) {
 		super(app);
 		this.setPlaceholder(placeholder);
@@ -23,6 +24,10 @@ export class EntityPickerModal extends FuzzySuggestModal<IndexedEntity> {
 		];
 		const all: IndexedEntity[] = [];
 		for (const kind of kinds) all.push(...this.index.byKind(kind));
+		if (this.campaignRoot) {
+			const prefix = `${this.campaignRoot}/`;
+			return all.filter((e) => e.path.startsWith(prefix));
+		}
 		return all;
 	}
 
