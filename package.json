@@ -1,6 +1,6 @@
 {
   "name": "dnd-campaign-manager",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Tabletop RPG campaign plugin for Obsidian",
   "main": "main.js",
   "scripts": {

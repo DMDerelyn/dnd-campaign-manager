@@ -1,7 +1,7 @@
 {
   "id": "dnd-campaign-manager",
   "name": "Campaign Codex",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "minAppVersion": "1.7.2",
   "description": "Run tabletop RPG campaigns with a typed entity graph, session runner, initiative tracker, quest board, and player-facing site export.",
   "author": "DMDerelyn",

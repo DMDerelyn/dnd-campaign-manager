@@ -282,7 +282,7 @@
 	max-width: 40%;
 }
 .campaign-quest-label {
-	font-family: var(--font-monospace, ui-monospace, Menlo, monospace);
+	font-family: var(--font-monospace, Menlo, monospace);
 	text-transform: uppercase;
 	font-size: 9px;
 	letter-spacing: 0.2em;
@@ -316,7 +316,7 @@
 }
 .campaign-quest-deadline-empty { visibility: hidden; }
 .campaign-quest-note {
-	font-family: var(--font-monospace, ui-monospace, Menlo, monospace);
+	font-family: var(--font-monospace, Menlo, monospace);
 	font-style: normal;
 	font-size: 10px;
 	letter-spacing: .04em;
