@@ -162,7 +162,7 @@ export default class CampaignPlugin extends Plugin {
 		});
 	}
 
-	async onunload(): Promise<void> {
+	onunload(): void {
 		this.unloaded = true;
 		for (const id of this.normalizationTimers) window.clearTimeout(id);
 		this.normalizationTimers.clear();
@@ -173,13 +173,15 @@ export default class CampaignPlugin extends Plugin {
 	}
 
 	async loadSettings(): Promise<void> {
-		const saved = (await this.loadData()) ?? {};
-		if (typeof saved === "object" && saved !== null) {
-			delete (saved as Record<string, unknown>)["__proto__"];
-			delete (saved as Record<string, unknown>)["constructor"];
-			delete (saved as Record<string, unknown>)["prototype"];
-		}
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, saved);
+		const saved: unknown = await this.loadData();
+		const savedRecord: Record<string, unknown> =
+			saved && typeof saved === "object"
+				? { ...(saved as Record<string, unknown>) }
+				: {};
+		delete savedRecord["__proto__"];
+		delete savedRecord["constructor"];
+		delete savedRecord["prototype"];
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, savedRecord);
 		this.settings.agentGuide = Object.assign(
 			{},
 			DEFAULT_SETTINGS.agentGuide,

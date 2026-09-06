@@ -121,7 +121,7 @@ function stringArray(value: unknown): string[] {
 	return value.filter((v): v is string => typeof v === "string");
 }
 
-const WIKILINK = /^\[\[([^\[\]]+)\]\]$/;
+const WIKILINK = /^\[\[([^[\]]+)\]\]$/;
 
 /**
  * Reduce a `[[target|alias]]` / `[[target#heading]]` string to just the target,
