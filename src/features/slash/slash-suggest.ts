@@ -63,15 +63,15 @@ export class SlashSuggest extends EditorSuggest<Match> {
 
 	renderSuggestion(match: Match, el: HTMLElement): void {
 		el.addClass("campaign-slash-suggestion");
-		el.createEl("span", { text: `/${match.command.trigger}`, cls: "campaign-slash-trigger" });
-		el.createEl("span", { text: match.command.description, cls: "campaign-slash-desc" });
+		el.createSpan({ text: `/${match.command.trigger}`, cls: "campaign-slash-trigger" });
+		el.createSpan({ text: match.command.description, cls: "campaign-slash-desc" });
 	}
 
 	selectSuggestion(match: Match, _ev: MouseEvent | KeyboardEvent): void {
 		const ctx = this.context;
 		if (!ctx) return;
 		const { editor, start, end } = ctx;
-		match.command.run({
+		void match.command.run({
 			plugin: this.plugin,
 			editor,
 			tail: match.tail,

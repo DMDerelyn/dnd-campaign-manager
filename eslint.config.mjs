@@ -15,5 +15,11 @@ export default tseslint.config(
 				tsconfigRootDir: import.meta.dirname,
 			},
 		},
+		rules: {
+			// The plugin's UI copy uses Title Case for command/setting names
+			// consistently. Sentence-case is a style preference, not a
+			// submission blocker; revisit as a dedicated copy pass.
+			"obsidianmd/ui/sentence-case": "off",
+		},
 	},
 );

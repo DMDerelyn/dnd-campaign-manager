@@ -153,7 +153,7 @@ export class NPCGraphView extends ItemView {
 
 		const toolbar = el.createDiv({ cls: "campaign-map-toolbar" });
 		const activeRoot = this.plugin.getActiveCampaignRoot();
-		toolbar.createEl("span", {
+		toolbar.createSpan({
 			text: `Campaign: ${activeRoot}`,
 			cls: "campaign-init-campaign-label",
 		});
@@ -240,12 +240,12 @@ export class NPCGraphView extends ItemView {
 			this.draw();
 			this.simTicks--;
 			if (this.simTicks > 0) {
-				this.simRaf = requestAnimationFrame(step);
+				this.simRaf = window.requestAnimationFrame(step);
 			} else {
 				this.simRaf = null;
 			}
 		};
-		this.simRaf = requestAnimationFrame(step);
+		this.simRaf = window.requestAnimationFrame(step);
 	}
 
 	private simulateStep(): void {
@@ -465,7 +465,9 @@ export class NPCGraphView extends ItemView {
 		const hit = this.hitTest(world.x, world.y);
 		if (hit) {
 			const file = this.app.vault.getAbstractFileByPath(hit.entity.path);
-			if (file instanceof TFile) this.app.workspace.getLeaf(false).openFile(file);
+			if (file instanceof TFile) {
+				void this.app.workspace.getLeaf(false).openFile(file);
+			}
 		}
 	}
 }

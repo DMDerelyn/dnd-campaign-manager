@@ -16,12 +16,12 @@ export async function enterSessionLayout(plugin: CampaignPlugin): Promise<void> 
 		srLeaf = ws.getLeftLeaf(false);
 		if (srLeaf) await srLeaf.setViewState({ type: SESSION_RUNNER_VIEW_TYPE, active: true });
 	}
-	if (srLeaf) ws.revealLeaf(srLeaf);
+	if (srLeaf) void ws.revealLeaf(srLeaf);
 
 	let initLeaf: WorkspaceLeaf | null = ws.getLeavesOfType(INITIATIVE_VIEW_TYPE)[0] ?? null;
 	if (!initLeaf) {
 		initLeaf = ws.getRightLeaf(false);
 		if (initLeaf) await initLeaf.setViewState({ type: INITIATIVE_VIEW_TYPE, active: true });
 	}
-	if (initLeaf) ws.revealLeaf(initLeaf);
+	if (initLeaf) void ws.revealLeaf(initLeaf);
 }

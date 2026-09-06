@@ -92,11 +92,13 @@ export class QuestBoardView extends ItemView {
 			text: "Post a contract",
 			cls: "campaign-quest-empty-btn",
 		});
-		btn.addEventListener("click", async () => {
-			const name = await this.plugin.promptText("New quest title");
-			if (!name) return;
-			const file = await this.plugin.createEntity("quest", name);
-			await this.app.workspace.getLeaf(false).openFile(file);
+		btn.addEventListener("click", () => {
+			void (async () => {
+				const name = await this.plugin.promptText("New quest title");
+				if (!name) return;
+				const file = await this.plugin.createEntity("quest", name);
+				await this.app.workspace.getLeaf(false).openFile(file);
+			})();
 		});
 	}
 
@@ -224,17 +226,20 @@ export class QuestBoardView extends ItemView {
 	private openQuest(path: string): void {
 		const file = this.app.vault.getAbstractFileByPath(path);
 		if (file instanceof TFile) {
-			this.app.workspace.getLeaf(false).openFile(file);
+			void this.app.workspace.getLeaf(false).openFile(file);
 		}
 	}
 
 	private async completeQuest(path: string): Promise<void> {
 		const file = this.app.vault.getAbstractFileByPath(path);
 		if (!(file instanceof TFile)) return;
-		await this.app.fileManager.processFrontMatter(file, (fm) => {
-			fm.state = "completed";
-			fm.updated = new Date().toISOString();
-		});
+		await this.app.fileManager.processFrontMatter(
+			file,
+			(fm: Record<string, unknown>) => {
+				fm.state = "completed";
+				fm.updated = new Date().toISOString();
+			},
+		);
 	}
 
 	// ——— Drag-to-reorder ————————————————————————————————————

@@ -1,4 +1,5 @@
-import type { App, TFile, EventRef } from "obsidian";
+import type { App, EventRef } from "obsidian";
+import { TFile } from "obsidian";
 import type { EntityKind } from "../schemas";
 import { validateFrontmatter, type ValidationIssue } from "../schemas";
 
@@ -87,7 +88,7 @@ export class EntityIndex {
 			kind: data.kind,
 			name,
 			aliases,
-			frontmatter: fm as Record<string, unknown>,
+			frontmatter: fm,
 		};
 		this.addToIndex(entry);
 		if (notify) this.notify();
@@ -173,7 +174,7 @@ export function wireEntityIndex(app: App, index: EntityIndex): EventRef[] {
 		app.metadataCache.on("changed", (file) => index.indexFile(file)),
 		app.metadataCache.on("deleted", (file) => index.removeFile(file.path)),
 		app.vault.on("rename", (file, oldPath) => {
-			if ("extension" in file) index.renameFile(file as TFile, oldPath);
+			if (file instanceof TFile) index.renameFile(file, oldPath);
 		}),
 	];
 }

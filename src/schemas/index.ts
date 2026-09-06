@@ -54,7 +54,7 @@ export function validateFrontmatter(
 			issues: [{ path: "", message: "missing frontmatter", severity: "error" }],
 		};
 	}
-	const kind = (fm as { kind?: unknown }).kind;
+	const kind = (fm).kind;
 	if (typeof kind !== "string" || !(kind in SchemaByKind)) {
 		return {
 			ok: false,
@@ -68,9 +68,9 @@ export function validateFrontmatter(
 		};
 	}
 	const schema = SchemaByKind[kind as EntityKind];
-	const cleaned = stripNulls(fm as Record<string, unknown>);
+	const cleaned = stripNulls(fm);
 	const result = schema.safeParse(cleaned);
-	if (result.success) return { ok: true, data: result.data as Entity };
+	if (result.success) return { ok: true, data: result.data };
 	return { ok: false, issues: zodIssues(result.error) };
 }
 

@@ -114,7 +114,7 @@ export class TimelineView extends ItemView {
 		el.addClass("campaign-timeline");
 
 		const toolbar = el.createDiv({ cls: "campaign-map-toolbar" });
-		toolbar.createEl("span", {
+		toolbar.createSpan({
 			text: `Campaign: ${this.bucketsCampaign}`,
 			cls: "campaign-init-campaign-label",
 		});
@@ -161,10 +161,12 @@ export class TimelineView extends ItemView {
 			title.addEventListener("click", (e) => {
 				e.preventDefault();
 				const file = this.plugin.app.vault.getAbstractFileByPath(bucket.entity.path);
-				if (file instanceof TFile) this.plugin.app.workspace.getLeaf(false).openFile(file);
+				if (file instanceof TFile) {
+					void this.plugin.app.workspace.getLeaf(false).openFile(file);
+				}
 			});
 			if (bucket.date) {
-				header.createEl("span", {
+				header.createSpan({
 					text: bucket.date,
 					cls: "campaign-timeline-session-date",
 				});
@@ -184,7 +186,7 @@ export class TimelineView extends ItemView {
 					cls: isQuest ? "campaign-timeline-entry-quest" : undefined,
 				});
 				if (entry.timestamp) {
-					li.createEl("span", {
+					li.createSpan({
 						text: entry.timestamp,
 						cls: "campaign-timeline-entry-ts",
 					});
