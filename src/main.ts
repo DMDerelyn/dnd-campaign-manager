@@ -259,8 +259,14 @@ export default class CampaignPlugin extends Plugin {
 		return file;
 	}
 
-	async promptEntityPicker() {
-		return new EntityPickerModal(this.app, this.entityIndex).pick();
+	async promptEntityPicker(kinds?: EntityKind[]) {
+		return new EntityPickerModal(
+			this.app,
+			this.entityIndex,
+			kinds,
+			undefined,
+			this.getActiveCampaignRoot(),
+		).pick();
 	}
 
 	private async ensureFolder(path: string): Promise<void> {
@@ -490,7 +496,9 @@ export default class CampaignPlugin extends Plugin {
 
 	private async runAutolink(file: TFile): Promise<void> {
 		const src = await this.app.vault.read(file);
-		const plan = autolink(this.entityIndex, src);
+		const match = file.path.match(/^(Campaigns\/[^/]+)\//);
+		const scope = match ? match[1] : this.settings.campaignRoot;
+		const plan = autolink(this.entityIndex, src, scope);
 		if (plan.replacements === 0) {
 			new Notice("Auto-link: nothing to change.");
 			return;
@@ -765,7 +773,7 @@ function kindStub(kind: EntityKind): string[] {
 		case "npc":
 			return ["disposition: neutral", "status: alive"];
 		case "quest":
-			return ["state: hook", "objectives: []"];
+			return ["state: hook", "objectives: []", "deadline:", "hook:"];
 		case "location":
 			return ["type: poi"];
 		case "session":

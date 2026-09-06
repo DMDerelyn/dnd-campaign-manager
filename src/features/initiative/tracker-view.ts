@@ -274,15 +274,11 @@ export class InitiativeTrackerView extends ItemView {
 			this.app,
 			this.plugin.entityIndex,
 			["npc"],
-			"Pick an NPC to add to combat\u2026",
+			"Pick an NPC to add to combat…",
+			this.plugin.getActiveCampaignRoot(),
 		);
 		const picked = await modal.pick();
 		if (!picked) return;
-		const root = this.plugin.getActiveCampaignRoot();
-		if (!picked.path.startsWith(`${root}/`)) {
-			new Notice(`That NPC isn't in the active campaign (${root}).`);
-			return;
-		}
 		const fm = picked.frontmatter;
 		const hp = fm.hp as { current?: number; max?: number } | undefined;
 		const hpMax = typeof hp?.max === "number" ? hp.max : typeof fm.hp_max === "number" ? fm.hp_max : 10;

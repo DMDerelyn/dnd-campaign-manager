@@ -11,14 +11,20 @@ export interface LinkPlan {
  * occurrences of those aliases with `[[Alias]]` wikilinks. Skips content
  * inside existing wikilinks, code fences, inline code, and frontmatter.
  */
-export function autolink(index: EntityIndex, source: string): LinkPlan {
+export function autolink(
+	index: EntityIndex,
+	source: string,
+	campaignRoot?: string,
+): LinkPlan {
 	const entries = index.allAliases();
 	if (entries.length === 0) return { output: source, replacements: 0 };
 
+	const prefix = campaignRoot ? `${campaignRoot}/` : null;
 	const trie = new AliasTrie();
 	const aliasToEntity = new Map<string, IndexedEntity>();
 	for (const { alias, entity } of entries) {
 		if (alias.length < 2) continue;
+		if (prefix && !entity.path.startsWith(prefix)) continue;
 		trie.insert(alias);
 		aliasToEntity.set(alias.toLowerCase(), entity);
 	}

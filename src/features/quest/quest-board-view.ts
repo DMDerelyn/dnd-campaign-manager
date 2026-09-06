@@ -5,23 +5,13 @@ import type { QuestState } from "../../schemas";
 
 export const QUEST_BOARD_VIEW_TYPE = "campaign-quest-board";
 
-const STATE_ORDER: QuestState[] = [
-	"hook",
-	"active",
-	"completed",
-	"failed",
-	"abandoned",
-];
-
-const STATE_SET: ReadonlySet<string> = new Set(STATE_ORDER);
-
-interface Objective {
-	text: string;
-	done: boolean;
-}
+const VISIBLE_STATES: ReadonlySet<QuestState> = new Set(["hook", "active"]);
+const SPREAD_MIN_WIDTH = 860;
 
 export class QuestBoardView extends ItemView {
-	private detach: (() => void) | null = null;
+	private detachIndex: (() => void) | null = null;
+	private resizeObserver: ResizeObserver | null = null;
+	private dragPath: string | null = null;
 
 	constructor(
 		leaf: WorkspaceLeaf,
@@ -42,12 +32,18 @@ export class QuestBoardView extends ItemView {
 
 	async onOpen(): Promise<void> {
 		this.render();
-		this.detach = this.plugin.entityIndex.onChange(() => this.render());
+		this.detachIndex = this.plugin.entityIndex.onChange(() => this.render());
+
+		// Re-render on width changes so we can swap between spread/column.
+		this.resizeObserver = new ResizeObserver(() => this.render());
+		this.resizeObserver.observe(this.contentEl);
 	}
 
 	async onClose(): Promise<void> {
-		this.detach?.();
-		this.detach = null;
+		this.detachIndex?.();
+		this.detachIndex = null;
+		this.resizeObserver?.disconnect();
+		this.resizeObserver = null;
 	}
 
 	private render(): void {
@@ -55,178 +51,270 @@ export class QuestBoardView extends ItemView {
 		contentEl.empty();
 		contentEl.addClass("campaign-quest-board");
 
-		const quests = this.plugin.entityIndex.byKind("quest");
-		contentEl.createEl("h3", { text: `Quest board (${quests.length})` });
+		const visible = this.collectVisibleQuests();
 
-		if (quests.length === 0) {
-			const empty = contentEl.createDiv({ cls: "campaign-quest-empty" });
-			empty.createEl("p", {
-				text: "No quests yet.",
-				cls: "campaign-init-empty",
-			});
-			const btn = empty.createEl("button", {
-				text: "Create a quest",
-				cls: "campaign-init-btn",
-			});
-			btn.addEventListener("click", async () => {
-				const name = await this.plugin.promptText("New quest name");
-				if (!name) return;
-				const file = await this.plugin.createEntity("quest", name);
-				await this.app.workspace.getLeaf(false).openFile(file);
-			});
+		if (visible.length === 0) {
+			this.renderEmpty(contentEl);
 			return;
 		}
 
-		const grouped = groupByState(quests);
-
-		for (const state of STATE_ORDER) {
-			const bucket = grouped.get(state) ?? [];
-			if (bucket.length === 0) continue;
-			const section = contentEl.createEl("section", { cls: "campaign-quest-section" });
-			section.createEl("h4", { text: `${state} (${bucket.length})`, cls: `campaign-quest-state-${state}` });
-			const list = section.createEl("ul", { cls: "campaign-quest-list" });
-			for (const q of bucket) {
-				this.renderQuestRow(list, q);
-			}
-		}
+		const wide = contentEl.clientWidth >= SPREAD_MIN_WIDTH;
+		if (wide) this.renderSpread(contentEl, visible);
+		else this.renderColumn(contentEl, visible);
 	}
 
-	private renderQuestRow(list: HTMLElement, q: IndexedEntity): void {
-		const li = list.createEl("li", { cls: "campaign-quest-row" });
-
-		const head = li.createDiv({ cls: "campaign-quest-head" });
-
-		const link = head.createEl("a", { text: q.name, cls: "campaign-quest-link" });
-		link.addEventListener("click", (e) => {
-			e.preventDefault();
-			const file = this.app.vault.getAbstractFileByPath(q.path);
-			if (file instanceof TFile) {
-				this.app.workspace.getLeaf(false).openFile(file);
-			}
-		});
-
-		const currentState = normalizeState(q.frontmatter.state);
-		const select = head.createEl("select", { cls: "campaign-quest-state-select" });
-		for (const s of STATE_ORDER) {
-			const opt = select.createEl("option", { text: s, value: s });
-			if (s === currentState) opt.selected = true;
-		}
-		select.addEventListener("change", () => {
-			const next = select.value;
-			if (!STATE_SET.has(next)) return;
-			this.setQuestState(q.path, next as QuestState).catch((err) => {
-				console.error("Quest state update failed:", err);
-				new Notice(`Could not update state: ${(err as Error).message}`);
+	private collectVisibleQuests(): IndexedEntity[] {
+		const order = this.plugin.settings.questOrder ?? {};
+		const NEW_BUCKET = Number.MAX_SAFE_INTEGER;
+		return this.plugin
+			.byKindInActiveCampaign("quest")
+			.filter((q) => VISIBLE_STATES.has(normalizeState(q.frontmatter.state)))
+			.sort((a, b) => {
+				const ao = order[a.path] ?? NEW_BUCKET;
+				const bo = order[b.path] ?? NEW_BUCKET;
+				if (ao !== bo) return ao - bo;
+				return a.name.localeCompare(b.name);
 			});
+	}
+
+	private renderEmpty(parent: HTMLElement): void {
+		const empty = parent.createDiv({ cls: "campaign-quest-empty" });
+		const page = empty.createDiv({ cls: "campaign-quest-vellum" });
+		page.createEl("p", {
+			text: "The tavern is quiet tonight…",
+			cls: "campaign-quest-empty-line",
+		});
+		page.createEl("p", {
+			text: "No contracts are pinned to the ledger. Pour a drink and wait — someone always comes through the door.",
+			cls: "campaign-quest-empty-sub",
+		});
+		const btn = page.createEl("button", {
+			text: "Post a contract",
+			cls: "campaign-quest-empty-btn",
+		});
+		btn.addEventListener("click", async () => {
+			const name = await this.plugin.promptText("New quest title");
+			if (!name) return;
+			const file = await this.plugin.createEntity("quest", name);
+			await this.app.workspace.getLeaf(false).openFile(file);
+		});
+	}
+
+	private renderColumn(parent: HTMLElement, quests: IndexedEntity[]): void {
+		const stage = parent.createDiv({ cls: "campaign-quest-stage" });
+		const column = stage.createDiv({ cls: "campaign-quest-column" });
+		this.renderPageHeader(column, "Active Contracts", quests.length);
+		for (const q of quests) this.renderEntry(column, q, /*compact*/ true);
+	}
+
+	private renderSpread(parent: HTMLElement, quests: IndexedEntity[]): void {
+		const stage = parent.createDiv({ cls: "campaign-quest-stage" });
+		const spread = stage.createDiv({ cls: "campaign-quest-spread" });
+
+		const mid = Math.ceil(quests.length / 2);
+		const left = quests.slice(0, mid);
+		const right = quests.slice(mid);
+
+		const leftPage = spread.createDiv({
+			cls: "campaign-quest-page campaign-quest-page-left",
+		});
+		this.renderPageHeader(leftPage, "Active Contracts", quests.length);
+		for (const q of left) this.renderEntry(leftPage, q, /*compact*/ false);
+
+		spread.createDiv({ cls: "campaign-quest-spine" });
+
+		const rightPage = spread.createDiv({
+			cls: "campaign-quest-page campaign-quest-page-right",
+		});
+		this.renderPageHeader(rightPage, `Entries — ${quests.length}`, quests.length);
+		for (const q of right) this.renderEntry(rightPage, q, /*compact*/ false);
+	}
+
+	private renderPageHeader(parent: HTMLElement, label: string, _count: number): void {
+		const header = parent.createDiv({ cls: "campaign-quest-page-header" });
+		header.createDiv({ cls: "campaign-quest-page-rule" });
+		header.createSpan({ text: label, cls: "campaign-quest-page-label" });
+		header.createDiv({ cls: "campaign-quest-page-rule" });
+	}
+
+	private renderEntry(
+		parent: HTMLElement,
+		quest: IndexedEntity,
+		compact: boolean,
+	): void {
+		const article = parent.createEl("article", {
+			cls: `campaign-quest-entry${compact ? " is-compact" : ""}`,
+		});
+		article.draggable = true;
+		article.setAttr("data-quest-path", quest.path);
+
+		article.addEventListener("dragstart", (e) => this.onDragStart(e, quest.path));
+		article.addEventListener("dragover", (e) => this.onDragOver(e, quest.path));
+		article.addEventListener("drop", (e) => this.onDrop(e, quest.path));
+		article.addEventListener("dragend", () => this.onDragEnd());
+		article.addEventListener("click", (e) => {
+			// Avoid opening the note when the click came from the seal.
+			if ((e.target as HTMLElement).closest(".campaign-quest-seal")) return;
+			this.openQuest(quest.path);
 		});
 
-		const deadline = typeof q.frontmatter.deadline === "string"
-			? q.frontmatter.deadline.trim()
+		// Section sign in the gutter.
+		const gutter = article.createDiv({ cls: "campaign-quest-gutter" });
+		gutter.setAttr("aria-hidden", "true");
+		gutter.createSpan({ text: "§", cls: "campaign-quest-gutter-mark" });
+
+		// Body: title, reward, hook prose, footer.
+		const body = article.createDiv({ cls: "campaign-quest-body" });
+
+		const head = body.createDiv({ cls: "campaign-quest-head" });
+		head.createEl("h3", { text: quest.name, cls: "campaign-quest-title" });
+
+		const reward = formatReward(quest.frontmatter.rewards);
+		if (reward) {
+			const meta = head.createDiv({ cls: "campaign-quest-meta" });
+			meta.createSpan({ text: "reward", cls: "campaign-quest-label" });
+			meta.createSpan({ text: reward, cls: "campaign-quest-reward" });
+		}
+
+		const hook = typeof quest.frontmatter.hook === "string"
+			? quest.frontmatter.hook.trim()
+			: "";
+		if (hook) {
+			body.createEl("p", { text: hook, cls: "campaign-quest-hook" });
+		}
+
+		const foot = body.createDiv({ cls: "campaign-quest-foot" });
+		const deadline = typeof quest.frontmatter.deadline === "string"
+			? quest.frontmatter.deadline.trim()
 			: "";
 		if (deadline) {
-			const overdue = isOverdue(deadline);
-			head.createEl("span", {
-				text: `due ${deadline}`,
-				cls: `campaign-quest-deadline${overdue ? " campaign-quest-deadline-overdue" : ""}`,
-			});
+			const deadlineEl = foot.createSpan({ cls: "campaign-quest-deadline" });
+			deadlineEl.createSpan({ text: "by", cls: "campaign-quest-label" });
+			deadlineEl.appendText(` ${deadline}`);
+		} else {
+			foot.createSpan({ cls: "campaign-quest-deadline campaign-quest-deadline-empty" });
 		}
+		foot.createSpan({
+			text: noteLabel(quest.path),
+			cls: "campaign-quest-note",
+			attr: { title: quest.path },
+		});
 
-		const giver = q.frontmatter.giver;
-		if (typeof giver === "string" && giver.trim().length > 0) {
-			li.createEl("div", {
-				text: `giver: ${stripLink(giver)}`,
-				cls: "campaign-quest-giver",
+		// Wax seal — marks the quest complete.
+		const sealWrap = article.createDiv({ cls: "campaign-quest-seal-wrap" });
+		const seal = sealWrap.createEl("button", {
+			cls: "campaign-quest-seal",
+			attr: {
+				"aria-label": `Mark ${quest.name} complete`,
+				"title": "Seal entry — marks complete",
+				"type": "button",
+			},
+		});
+		const sealInner = seal.createSpan({ cls: "campaign-quest-seal-inner" });
+		sealInner.createSpan({ text: "❖", cls: "campaign-quest-seal-glyph" });
+		seal.addEventListener("click", (e) => {
+			e.stopPropagation();
+			this.completeQuest(quest.path).catch((err) => {
+				console.error("Quest complete failed:", err);
+				new Notice(`Could not mark complete: ${(err as Error).message}`);
 			});
-		}
+		});
+	}
 
-		const objectives = parseObjectives(q.frontmatter.objectives);
-		if (objectives.length > 0) {
-			const objList = li.createEl("ul", { cls: "campaign-quest-objectives" });
-			objectives.forEach((obj, idx) => {
-				const row = objList.createEl("li", { cls: "campaign-quest-objective" });
-				const cb = row.createEl("input", { type: "checkbox" });
-				cb.checked = obj.done;
-				const label = row.createEl("span", {
-					text: obj.text,
-					cls: obj.done ? "campaign-quest-objective-done" : undefined,
-				});
-				cb.addEventListener("change", () => {
-					this.toggleObjective(q.path, idx, cb.checked).catch((err) => {
-						console.error("Objective toggle failed:", err);
-						new Notice(`Could not update objective: ${(err as Error).message}`);
-						// Revert the visible state — the index change will
-						// re-render authoritatively, but do it now for feel.
-						cb.checked = !cb.checked;
-						if (cb.checked) label.addClass("campaign-quest-objective-done");
-						else label.removeClass("campaign-quest-objective-done");
-					});
-				});
-			});
+	private openQuest(path: string): void {
+		const file = this.app.vault.getAbstractFileByPath(path);
+		if (file instanceof TFile) {
+			this.app.workspace.getLeaf(false).openFile(file);
 		}
 	}
 
-	private async setQuestState(path: string, next: QuestState): Promise<void> {
+	private async completeQuest(path: string): Promise<void> {
 		const file = this.app.vault.getAbstractFileByPath(path);
 		if (!(file instanceof TFile)) return;
 		await this.app.fileManager.processFrontMatter(file, (fm) => {
-			fm.state = next;
+			fm.state = "completed";
 			fm.updated = new Date().toISOString();
 		});
 	}
 
-	private async toggleObjective(path: string, index: number, done: boolean): Promise<void> {
-		const file = this.app.vault.getAbstractFileByPath(path);
-		if (!(file instanceof TFile)) return;
-		await this.app.fileManager.processFrontMatter(file, (fm) => {
-			const current = parseObjectives(fm.objectives);
-			if (index < 0 || index >= current.length) return;
-			current[index] = { text: current[index].text, done };
-			fm.objectives = current;
-			fm.updated = new Date().toISOString();
+	// ——— Drag-to-reorder ————————————————————————————————————
+
+	private onDragStart(e: DragEvent, path: string): void {
+		this.dragPath = path;
+		if (e.dataTransfer) {
+			e.dataTransfer.effectAllowed = "move";
+			e.dataTransfer.setData("text/plain", path);
+		}
+		(e.currentTarget as HTMLElement).addClass("is-dragging");
+	}
+
+	private onDragOver(e: DragEvent, overPath: string): void {
+		if (!this.dragPath || this.dragPath === overPath) return;
+		e.preventDefault();
+		if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+	}
+
+	private onDrop(e: DragEvent, overPath: string): void {
+		e.preventDefault();
+		const moved = this.dragPath;
+		this.dragPath = null;
+		if (!moved || moved === overPath) return;
+
+		const visible = this.collectVisibleQuests().map((q) => q.path);
+		const from = visible.indexOf(moved);
+		const to = visible.indexOf(overPath);
+		if (from < 0 || to < 0) return;
+
+		const reordered = [...visible];
+		const [m] = reordered.splice(from, 1);
+		reordered.splice(to, 0, m);
+
+		this.persistOrder(reordered).catch((err) => {
+			console.error("Quest reorder save failed:", err);
 		});
 	}
-}
 
-function groupByState(quests: IndexedEntity[]): Map<QuestState, IndexedEntity[]> {
-	const map = new Map<QuestState, IndexedEntity[]>();
-	for (const q of quests) {
-		const state = normalizeState(q.frontmatter.state);
-		const bucket = map.get(state);
-		if (bucket) bucket.push(q);
-		else map.set(state, [q]);
+	private onDragEnd(): void {
+		this.dragPath = null;
+		this.contentEl
+			.querySelectorAll(".campaign-quest-entry.is-dragging")
+			.forEach((el) => (el as HTMLElement).removeClass("is-dragging"));
 	}
-	return map;
+
+	private async persistOrder(orderedPaths: string[]): Promise<void> {
+		const next: Record<string, number> = {};
+		orderedPaths.forEach((p, i) => (next[p] = i));
+		this.plugin.settings.questOrder = next;
+		await this.plugin.saveSettings();
+		this.render();
+	}
 }
 
 function normalizeState(raw: unknown): QuestState {
-	if (typeof raw === "string" && STATE_SET.has(raw)) return raw as QuestState;
+	if (raw === "active" || raw === "completed" || raw === "failed" || raw === "abandoned") {
+		return raw;
+	}
 	return "hook";
 }
 
-function parseObjectives(raw: unknown): Objective[] {
-	if (!Array.isArray(raw)) return [];
-	const out: Objective[] = [];
+function formatReward(raw: unknown): string {
+	if (!Array.isArray(raw)) return "";
+	const parts: string[] = [];
 	for (const item of raw) {
-		if (item && typeof item === "object" && "text" in item) {
-			const rec = item as Record<string, unknown>;
-			const text = typeof rec.text === "string" ? rec.text : "";
-			if (!text) continue;
-			out.push({ text, done: rec.done === true });
-		} else if (typeof item === "string" && item.trim().length > 0) {
-			// Tolerate a plain-string objective form.
-			out.push({ text: item, done: false });
-		}
+		if (typeof item !== "string") continue;
+		const trimmed = stripWikilink(item.trim());
+		if (trimmed) parts.push(trimmed);
 	}
-	return out;
+	return parts.join(" · ");
 }
 
-function isOverdue(deadline: string): boolean {
-	// Compare YYYY-MM-DD lexically; any ISO date prefix compares correctly.
-	const today = new Date().toISOString().slice(0, 10);
-	const d = deadline.slice(0, 10);
-	return /^\d{4}-\d{2}-\d{2}$/.test(d) && d < today;
+function stripWikilink(s: string): string {
+	const m = s.match(/^\[\[([^|\]]+)(?:\|([^\]]+))?\]\]$/);
+	if (!m) return s;
+	return (m[2] ?? m[1]).trim();
 }
 
-function stripLink(s: string): string {
-	return s.replace(/^\[\[(.+?)(\|.+)?\]\]$/, "$1");
+function noteLabel(path: string): string {
+	const base = path.split("/").pop() ?? path;
+	return base.replace(/\.md$/i, "");
 }

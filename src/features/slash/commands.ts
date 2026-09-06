@@ -101,21 +101,24 @@ export function buildSlashCommands(): SlashCommand[] {
 		async run({ plugin, tail, replace }) {
 			replace("");
 			const parsed = parseQuestStateTail(tail);
+			const root = plugin.getActiveCampaignRoot();
 			const quest = parsed.name
-				? (plugin.entityIndex
-						.byKind("quest")
+				? (plugin
+						.byKindInActiveCampaign("quest")
 						.find((q) => q.name.toLowerCase() === parsed.name.toLowerCase())
 					?? await new EntityPickerModal(
 						plugin.app,
 						plugin.entityIndex,
 						["quest"],
 						`No quest named "${parsed.name}" — pick one…`,
+						root,
 					).pick())
 				: await new EntityPickerModal(
 					plugin.app,
 					plugin.entityIndex,
 					["quest"],
 					"Pick a quest…",
+					root,
 				).pick();
 			if (!quest) return;
 

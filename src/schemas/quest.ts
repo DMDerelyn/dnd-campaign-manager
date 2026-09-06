@@ -25,5 +25,6 @@ export const QuestSchema = BaseEntity.extend({
 	related: WikilinkArray,
 	secrets: z.array(z.string()).default([]),
 	deadline: z.string().optional(),
+	hook: z.string().optional(),
 });
 export type Quest = z.infer<typeof QuestSchema>;

@@ -53,9 +53,13 @@ export class PCSheetView extends ItemView {
 		const header = el.createDiv({ cls: "campaign-pc-header" });
 		const pickBtn = header.createEl("button", { text: "Pick PC", cls: "campaign-init-btn" });
 		pickBtn.addEventListener("click", async () => {
-			const pcs = this.plugin.entityIndex.byKind("pc");
-			if (pcs.length === 0) return;
-			const picked = await this.plugin.promptEntityPicker();
+			const pcs = this.plugin.byKindInActiveCampaign("pc");
+			if (pcs.length === 0) {
+				const root = this.plugin.getActiveCampaignRoot();
+				new Notice(`No PCs in active campaign (${root}).`);
+				return;
+			}
+			const picked = await this.plugin.promptEntityPicker(["pc"]);
 			if (picked && picked.kind === "pc") this.setEntity(picked);
 		});
 

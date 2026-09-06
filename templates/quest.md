@@ -17,6 +17,8 @@ objectives: []
 rewards: []
 related: []
 secrets: []
+deadline:
+hook:
 created: <% tp.date.now("YYYY-MM-DDTHH:mm:ss") %>
 updated: <% tp.date.now("YYYY-MM-DDTHH:mm:ss") %>
 ---

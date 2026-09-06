@@ -137,6 +137,7 @@ rewards: []
 related: []
 secrets: []
 deadline:
+hook:
 created: {{NOW}}
 updated: {{NOW}}
 ---
